@@ -70,6 +70,12 @@ Expose bounded duration editors directly from the visible session queue. Updatin
 
 Use the native macOS 26 glass effect when available. Preserve the macOS 14 deployment target with an ultra-thin material fallback, restrained cyan edge reflection, and the same panel shape so the visual hierarchy remains consistent across supported systems.
 
+## TD-012 — Extend the existing snapshot for local tasks
+
+**Status:** Accepted
+
+Persist task records alongside settings and dive history in the existing local JSON snapshot. Decode a missing `tasks` key as an empty collection so snapshots created by earlier builds remain readable. Keep task lifecycle rules in `FocusDiveCore`; the SwiftUI view model exposes thin persistence-backed operations.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

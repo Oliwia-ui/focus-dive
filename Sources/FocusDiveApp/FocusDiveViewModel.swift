@@ -8,6 +8,7 @@ import UserNotifications
 final class FocusDiveViewModel: ObservableObject {
     @Published private(set) var coordinator: SessionCoordinator
     @Published private(set) var history: [DiveLogEntry]
+    @Published private(set) var tasks: TaskCollection
     @Published var mission: String
     @Published var showSettings = false
     @Published var showLogbook = false
@@ -46,6 +47,7 @@ final class FocusDiveViewModel: ObservableObject {
 
         coordinator = SessionCoordinator(settings: snapshot.settings)
         history = snapshot.history
+        tasks = TaskCollection(items: snapshot.tasks)
         mission = ""
         discovery = Self.discovery(for: snapshot.history.count)
         completionNotice = nil
@@ -140,6 +142,32 @@ final class FocusDiveViewModel: ObservableObject {
         persist()
     }
 
+    @discardableResult
+    func createTask(title: String, details: String = "") throws -> DiveTask {
+        let task = try tasks.create(title: title, details: details)
+        persist()
+        return task
+    }
+
+    func updateTask(id: UUID, title: String, details: String) throws {
+        try tasks.update(id: id, title: title, details: details)
+        persist()
+    }
+
+    func setTaskCompleted(_ isCompleted: Bool, id: UUID) throws {
+        if isCompleted {
+            try tasks.complete(id: id)
+        } else {
+            try tasks.reopen(id: id)
+        }
+        persist()
+    }
+
+    func deleteTask(id: UUID) throws {
+        try tasks.delete(id: id)
+        persist()
+    }
+
     func requestNotificationPermission() {
         guard ProcessInfo.processInfo.environment["FOCUS_DIVE_UI_TESTING"] != "1",
               Bundle.main.bundleIdentifier != nil else { return }
@@ -175,7 +203,13 @@ final class FocusDiveViewModel: ObservableObject {
     private func persist() {
         guard persistenceWritable else { return }
         do {
-            try store.save(AppSnapshot(settings: coordinator.settings, history: history))
+            try store.save(
+                AppSnapshot(
+                    settings: coordinator.settings,
+                    history: history,
+                    tasks: tasks.items
+                )
+            )
             persistenceError = nil
         } catch {
             persistenceError = "Focus Dive could not save your latest changes."

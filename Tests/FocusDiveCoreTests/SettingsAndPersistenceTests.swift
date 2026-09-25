@@ -100,3 +100,84 @@ import Testing
     #expect(coordinator.timer.remainingSeconds == 1_440)
     #expect(coordinator.settings.focusMinutes == 40)
 }
+
+@Test func taskCollectionSupportsTheRequiredLifecycle() throws {
+    let createdAt = Date(timeIntervalSince1970: 100)
+    var collection = TaskCollection()
+
+    let task = try collection.create(
+        title: "Write research summary",
+        details: "Compare three focus applications",
+        at: createdAt
+    )
+    #expect(collection.items == [task])
+    #expect(task.title == "Write research summary")
+    #expect(!task.isCompleted)
+
+    try collection.update(
+        id: task.id,
+        title: "Write timer research summary",
+        details: "Compare three timer applications",
+        at: Date(timeIntervalSince1970: 200)
+    )
+    #expect(collection.items[0].title == "Write timer research summary")
+    #expect(collection.items[0].updatedAt == Date(timeIntervalSince1970: 200))
+
+    try collection.complete(id: task.id, at: Date(timeIntervalSince1970: 300))
+    #expect(collection.items[0].isCompleted)
+    #expect(collection.items[0].completedAt == Date(timeIntervalSince1970: 300))
+
+    try collection.reopen(id: task.id, at: Date(timeIntervalSince1970: 400))
+    #expect(!collection.items[0].isCompleted)
+    #expect(collection.items[0].completedAt == nil)
+
+    let deleted = try collection.delete(id: task.id)
+    #expect(deleted.id == task.id)
+    #expect(collection.items.isEmpty)
+}
+
+@Test func taskCollectionRejectsBlankTitlesAndMissingTasks() throws {
+    var collection = TaskCollection()
+
+    #expect(throws: TaskError.blankTitle) {
+        _ = try collection.create(title: "   ", at: .now)
+    }
+    #expect(throws: TaskError.notFound) {
+        try collection.complete(id: UUID(), at: .now)
+    }
+}
+
+@Test func jsonStoreRoundTripsTasks() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let store = JSONDiveStore(directory: directory)
+    var tasks = TaskCollection()
+    _ = try tasks.create(title: "Prepare prototype", at: Date(timeIntervalSince1970: 55))
+    let snapshot = AppSnapshot(settings: .standard, history: [], tasks: tasks.items)
+
+    try store.save(snapshot)
+    let restored = try store.load()
+
+    #expect(restored.tasks == tasks.items)
+}
+
+@Test func snapshotDecodesLegacyFilesWithoutTasks() throws {
+    let data = Data("""
+    {
+      "settings": {
+        "focusMinutes": 25,
+        "shortBreakMinutes": 5,
+        "longBreakMinutes": 15,
+        "automaticallyStartBreaks": false,
+        "ambienceEnabled": false,
+        "completionSoundEnabled": false
+      },
+      "history": []
+    }
+    """.utf8)
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let snapshot = try decoder.decode(AppSnapshot.self, from: data)
+
+    #expect(snapshot.tasks.isEmpty)
+}

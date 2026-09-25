@@ -2,6 +2,19 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-25 — Local task foundation
+
+### Added
+
+- Added a local task model with create, edit, complete, reopen, and delete operations.
+- Persisted tasks in the existing JSON snapshot without changing the app architecture.
+- Added backward-compatible decoding so existing user snapshots without tasks continue to load.
+- Added view-model task operations so the upcoming task interface uses the same guarded persistence path as timer settings and history.
+
+### Verified
+
+- Added lifecycle, validation, persistence round-trip, and legacy-snapshot migration tests.
+
 ## 2026-09-25 — Editable session durations
 
 ### Changed
