@@ -1,0 +1,66 @@
+import Foundation
+
+public enum TimerState: String, Codable, Sendable {
+    case idle
+    case running
+    case paused
+    case completed
+}
+
+public struct DiveTimer: Equatable, Sendable {
+    public let durationSeconds: Int
+    public private(set) var remainingSeconds: Int
+    public private(set) var state: TimerState = .idle
+    private var anchorDate: Date?
+
+    public init(duration: Int) {
+        precondition(duration > 0, "Duration must be positive")
+        durationSeconds = duration
+        remainingSeconds = duration
+    }
+
+    public var progress: Double {
+        1 - (Double(remainingSeconds) / Double(durationSeconds))
+    }
+
+    public var depthMeters: Double {
+        60 * (Double(remainingSeconds) / Double(durationSeconds))
+    }
+
+    public mutating func start(at date: Date = .now) {
+        guard state != .completed, state != .running else { return }
+        anchorDate = date
+        state = .running
+    }
+
+    public mutating func pause(at date: Date = .now) {
+        guard state == .running else { return }
+        remainingSeconds = remainingSeconds(at: date)
+        anchorDate = nil
+        state = .paused
+    }
+
+    public mutating func reset() {
+        remainingSeconds = durationSeconds
+        anchorDate = nil
+        state = .idle
+    }
+
+    public func remainingSeconds(at date: Date) -> Int {
+        guard state == .running, let anchorDate else { return remainingSeconds }
+        let elapsed = max(0, Int(date.timeIntervalSince(anchorDate)))
+        return max(0, remainingSeconds - elapsed)
+    }
+
+    @discardableResult
+    public mutating func tick(at date: Date = .now) -> Bool {
+        guard state == .running else { return false }
+        let updatedRemaining = remainingSeconds(at: date)
+        remainingSeconds = updatedRemaining
+        anchorDate = date
+        guard updatedRemaining == 0 else { return false }
+        state = .completed
+        anchorDate = nil
+        return true
+    }
+}
