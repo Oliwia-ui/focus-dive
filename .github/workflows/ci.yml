@@ -1,0 +1,39 @@
+name: macOS CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  swift-package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+      - name: Build package
+        run: swift build
+      - name: Run unit tests
+        run: swift test
+      - name: Build app bundle
+        run: ./scripts/build-app.sh release
+
+  xcode-project:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build app and UI test targets
+        run: >-
+          xcodebuild build-for-testing
+          -project FocusDive.xcodeproj
+          -scheme FocusDive
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO

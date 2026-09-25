@@ -12,6 +12,7 @@ public struct DiveTimer: Equatable, Sendable {
     public private(set) var remainingSeconds: Int
     public private(set) var state: TimerState = .idle
     private var anchorDate: Date?
+    private var anchorRemainingSeconds: Int?
 
     public init(duration: Int) {
         precondition(duration > 0, "Duration must be positive")
@@ -30,6 +31,7 @@ public struct DiveTimer: Equatable, Sendable {
     public mutating func start(at date: Date = .now) {
         guard state != .completed, state != .running else { return }
         anchorDate = date
+        anchorRemainingSeconds = remainingSeconds
         state = .running
     }
 
@@ -37,19 +39,21 @@ public struct DiveTimer: Equatable, Sendable {
         guard state == .running else { return }
         remainingSeconds = remainingSeconds(at: date)
         anchorDate = nil
+        anchorRemainingSeconds = nil
         state = .paused
     }
 
     public mutating func reset() {
         remainingSeconds = durationSeconds
         anchorDate = nil
+        anchorRemainingSeconds = nil
         state = .idle
     }
 
     public func remainingSeconds(at date: Date) -> Int {
-        guard state == .running, let anchorDate else { return remainingSeconds }
+        guard state == .running, let anchorDate, let anchorRemainingSeconds else { return remainingSeconds }
         let elapsed = max(0, Int(date.timeIntervalSince(anchorDate)))
-        return max(0, remainingSeconds - elapsed)
+        return max(0, anchorRemainingSeconds - elapsed)
     }
 
     @discardableResult
@@ -57,10 +61,10 @@ public struct DiveTimer: Equatable, Sendable {
         guard state == .running else { return false }
         let updatedRemaining = remainingSeconds(at: date)
         remainingSeconds = updatedRemaining
-        anchorDate = date
         guard updatedRemaining == 0 else { return false }
         state = .completed
         anchorDate = nil
+        anchorRemainingSeconds = nil
         return true
     }
 }
