@@ -15,6 +15,12 @@ struct FocusDiveApp: App {
                 }
             }
             .preferredColorScheme(.dark)
+            .sheet(isPresented: $model.showSettings) {
+                SettingsView(model: model)
+            }
+            .sheet(isPresented: $model.showLogbook) {
+                LogbookView(model: model)
+            }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1_440, height: 900)

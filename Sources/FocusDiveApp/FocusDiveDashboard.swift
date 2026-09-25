@@ -39,16 +39,53 @@ struct FocusDiveDashboard: View {
                     .padding(.horizontal, 28)
                     .padding(.bottom, 24)
             }
+
+            if let notice = model.completionNotice {
+                completionOverlay(notice)
+            }
+
+            if let persistenceError = model.persistenceError {
+                VStack {
+                    Spacer()
+                    Label(persistenceError, systemImage: "externaldrive.badge.exclamationmark")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.72), in: Capsule())
+                        .overlay(Capsule().stroke(Color.diveAmber.opacity(0.6)))
+                        .foregroundStyle(Color.diveAmber)
+                        .padding(.bottom, 18)
+                }
+            }
         }
         .foregroundStyle(Color.diveText)
         .frame(minWidth: 1_100, minHeight: 720)
-        .sheet(isPresented: $model.showSettings) {
-            SettingsView(model: model)
-        }
-        .sheet(isPresented: $model.showLogbook) {
-            LogbookView(history: model.history)
-        }
         .onAppear { model.requestNotificationPermission() }
+    }
+
+    private func completionOverlay(_ notice: CompletionNotice) -> some View {
+        VStack(spacing: 15) {
+            Image(systemName: notice.kind == .focus ? "sun.max.fill" : "water.waves")
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(Color.diveCyan)
+                .shadow(color: .diveCyan.opacity(0.7), radius: 16)
+            Text(notice.title.uppercased())
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .tracking(4)
+            Text(notice.detail)
+                .font(.system(size: 13, design: .rounded))
+                .foregroundStyle(Color.diveAqua)
+            Button("Continue") { model.completionNotice = nil }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.diveCobalt)
+        }
+        .padding(.horizontal, 34)
+        .padding(.vertical, 28)
+        .frame(width: 360)
+        .divePanel()
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(notice.title). \(notice.detail)")
     }
 
     private var header: some View {

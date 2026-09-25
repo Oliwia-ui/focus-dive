@@ -87,11 +87,7 @@ struct SessionQueueCard: View {
     }
 
     private var activeIndex: Int {
-        switch model.currentKind {
-        case .focus: 0
-        case .shortBreak: 1
-        case .longBreak: 3
-        }
+        model.coordinator.queuePosition
     }
 }
 

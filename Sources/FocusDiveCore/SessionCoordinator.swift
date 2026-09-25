@@ -1,10 +1,19 @@
 import Foundation
 
+public struct SessionTickResult: Equatable, Sendable {
+    public let didComplete: Bool
+    public let completedKind: SessionKind?
+    public let logEntry: DiveLogEntry?
+
+    public static let noChange = SessionTickResult(didComplete: false, completedKind: nil, logEntry: nil)
+}
+
 public final class SessionCoordinator {
     public private(set) var settings: DurationSettings
     public private(set) var timer: DiveTimer
     public private(set) var currentKind: SessionKind = .focus
     public private(set) var completedFocusSessions = 0
+    public private(set) var queuePosition = 0
     public var mission = ""
 
     public init(settings: DurationSettings = .standard) {
@@ -29,8 +38,11 @@ public final class SessionCoordinator {
     }
 
     @discardableResult
-    public func tick(at date: Date = .now) -> DiveLogEntry? {
-        timer.tick(at: date) ? completeCurrentSession(at: date) : nil
+    public func tick(at date: Date = .now) -> SessionTickResult {
+        guard timer.tick(at: date) else { return .noChange }
+        let completedKind = currentKind
+        let entry = completeCurrentSession(at: date)
+        return SessionTickResult(didComplete: true, completedKind: completedKind, logEntry: entry)
     }
 
     @discardableResult
@@ -63,12 +75,8 @@ public final class SessionCoordinator {
     }
 
     private func advance(after kind: SessionKind) {
-        switch kind {
-        case .focus:
-            currentKind = completedFocusSessions > 0 && completedFocusSessions.isMultiple(of: 4) ? .longBreak : .shortBreak
-        case .shortBreak, .longBreak:
-            currentKind = .focus
-        }
+        queuePosition = (queuePosition + 1) % 4
+        currentKind = [.focus, .shortBreak, .focus, .longBreak][queuePosition]
         timer = DiveTimer(duration: settings.duration(for: currentKind))
         if settings.automaticallyStartBreaks && currentKind != .focus {
             timer.start()

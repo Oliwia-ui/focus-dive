@@ -70,36 +70,62 @@ struct SettingsView: View {
 }
 
 struct LogbookView: View {
-    let history: [DiveLogEntry]
+    @ObservedObject var model: FocusDiveViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Group {
-                if history.isEmpty {
+                if model.history.isEmpty {
                     ContentUnavailableView(
                         "No completed dives",
                         systemImage: "water.waves",
                         description: Text("Completed focus sessions will surface here.")
                     )
                 } else {
-                    List(history) { entry in
-                        HStack(spacing: 16) {
-                            Image(systemName: "water.waves")
-                                .foregroundStyle(Color.diveCyan)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(entry.taskName).font(.headline)
-                                Text(entry.completedAt.formatted(date: .abbreviated, time: .shortened))
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing) {
-                                Text("\(entry.durationSeconds / 60) min")
-                                Text("\(Int(entry.depthReachedMeters)) m")
-                                    .foregroundStyle(.secondary)
+                    List {
+                        if !model.unlockedDiscoveries.isEmpty {
+                            Section("Discoveries") {
+                                ForEach(model.unlockedDiscoveries) { discovery in
+                                    Label {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(discovery.name).font(.headline)
+                                            Text(discovery.detail).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    } icon: {
+                                        Image(systemName: discovery.symbol)
+                                            .foregroundStyle(Color.diveAmber)
+                                    }
+                                }
                             }
                         }
-                        .padding(.vertical, 6)
+
+                        Section("Dive profiles") {
+                            ForEach(model.history) { entry in
+                                VStack(alignment: .leading, spacing: 9) {
+                                    HStack(spacing: 16) {
+                                        Image(systemName: "water.waves")
+                                            .foregroundStyle(Color.diveCyan)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(entry.taskName).font(.headline)
+                                            Text(entry.completedAt.formatted(date: .abbreviated, time: .shortened))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        VStack(alignment: .trailing) {
+                                            Text("\(entry.durationSeconds / 60) min")
+                                            Text("\(Int(entry.depthReachedMeters)) m")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    ProgressView(value: entry.depthReachedMeters, total: 60)
+                                        .tint(Color.diveCyan)
+                                    TextField("Optional note", text: noteBinding(for: entry))
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                                .padding(.vertical, 6)
+                            }
+                        }
                     }
                 }
             }
@@ -108,7 +134,14 @@ struct LogbookView: View {
                 Button("Done") { dismiss() }
             }
         }
-        .frame(width: 620, height: 520)
+        .frame(width: 660, height: 580)
+    }
+
+    private func noteBinding(for entry: DiveLogEntry) -> Binding<String> {
+        Binding(
+            get: { model.history.first(where: { $0.id == entry.id })?.note ?? "" },
+            set: { model.updateNote(for: entry.id, note: $0) }
+        )
     }
 }
 

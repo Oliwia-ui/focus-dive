@@ -50,3 +50,15 @@ import Testing
     _ = timer.tick(at: Date(timeIntervalSince1970: 100))
     #expect(abs(timer.depthMeters) < 0.001)
 }
+
+@Test func frequentTicksAccumulateElapsedTime() {
+    var timer = DiveTimer(duration: 10)
+    timer.start(at: Date(timeIntervalSince1970: 0))
+
+    _ = timer.tick(at: Date(timeIntervalSince1970: 0.25))
+    _ = timer.tick(at: Date(timeIntervalSince1970: 0.50))
+    _ = timer.tick(at: Date(timeIntervalSince1970: 0.75))
+    _ = timer.tick(at: Date(timeIntervalSince1970: 1.00))
+
+    #expect(timer.remainingSeconds == 9)
+}

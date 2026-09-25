@@ -50,3 +50,32 @@ import Testing
     #expect(restored.settings == settings)
     #expect(restored.history == [entry])
 }
+
+@Test func sessionQueueAdvancesFocusShortFocusLong() throws {
+    let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+
+    #expect(coordinator.queuePosition == 0)
+    _ = coordinator.completeCurrentSession()
+    #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.queuePosition == 1)
+
+    coordinator.skip()
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 2)
+
+    _ = coordinator.completeCurrentSession()
+    #expect(coordinator.currentKind == .longBreak)
+    #expect(coordinator.queuePosition == 3)
+}
+
+@Test func breakCompletionIsReportedWithoutCreatingLogEntry() throws {
+    let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+    coordinator.skip()
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+
+    let result = coordinator.tick(at: Date(timeIntervalSince1970: 300))
+
+    #expect(result.didComplete)
+    #expect(result.logEntry == nil)
+    #expect(result.completedKind == .shortBreak)
+}
