@@ -106,8 +106,32 @@ final class FocusDiveViewModel: ObservableObject {
     func updateSettings(_ settings: DurationSettings) {
         ticker?.invalidate()
         coordinator.updateSettings(settings)
+        if coordinator.timer.state == .running {
+            startTicker()
+        }
         persist()
         objectWillChange.send()
+    }
+
+    func minutes(for kind: SessionKind) -> Int {
+        switch kind {
+        case .focus: settings.focusMinutes
+        case .shortBreak: settings.shortBreakMinutes
+        case .longBreak: settings.longBreakMinutes
+        }
+    }
+
+    func updateDuration(for kind: SessionKind, minutes: Int) {
+        var updated = settings
+        switch kind {
+        case .focus:
+            updated.focusMinutes = min(max(minutes, 1), 120)
+        case .shortBreak:
+            updated.shortBreakMinutes = min(max(minutes, 1), 30)
+        case .longBreak:
+            updated.longBreakMinutes = min(max(minutes, 1), 60)
+        }
+        updateSettings(updated)
     }
 
     func updateNote(for entryID: UUID, note: String) {

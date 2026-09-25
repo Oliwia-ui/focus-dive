@@ -2,6 +2,20 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-25 — Editable session durations
+
+### Changed
+
+- Made every session queue row interactive with an accessible duration editor.
+- Added bounded one-minute adjustments and useful presets for focus, short-break, and long-break sessions.
+- Applied duration changes immediately while preserving an active countdown instead of resetting it.
+- Refined dashboard panels with restrained native glass treatment on macOS 26 and a material fallback on macOS 14–15.
+
+### Verified
+
+- Added regression coverage for duration changes while idle and while running.
+- `swift test` passes all 13 tests.
+
 ## 2026-09-25 — MVP documentation baseline
 
 ### Added

@@ -70,8 +70,11 @@ public final class SessionCoordinator {
     }
 
     public func updateSettings(_ settings: DurationSettings) {
+        let shouldRefreshIdleTimer = timer.state == .idle
         self.settings = settings
-        timer = DiveTimer(duration: settings.duration(for: currentKind))
+        if shouldRefreshIdleTimer {
+            timer = DiveTimer(duration: settings.duration(for: currentKind))
+        }
     }
 
     private func advance(after kind: SessionKind) {

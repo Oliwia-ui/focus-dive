@@ -12,22 +12,44 @@ extension Color {
 }
 
 struct DivePanelModifier: ViewModifier {
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .background(
-                LinearGradient(
-                    colors: [Color(red: 0.018, green: 0.095, blue: 0.15).opacity(0.78), .black.opacity(0.42)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffect(
+                    .regular.tint(Color.diveNavy.opacity(0.18)),
+                    in: shape
                 )
-            )
-            .background(.ultraThinMaterial.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Color.diveAqua.opacity(0.3), lineWidth: 0.8)
-            }
-            .shadow(color: .black.opacity(0.28), radius: 22, y: 10)
+                .overlay {
+                    shape.stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.24), Color.diveAqua.opacity(0.18), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.8
+                    )
+                }
+                .shadow(color: .black.opacity(0.26), radius: 24, y: 12)
+        } else {
+            content
+                .background(.ultraThinMaterial)
+                .background(Color.diveNavy.opacity(0.26))
+                .clipShape(shape)
+                .overlay {
+                    shape.stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.18), Color.diveAqua.opacity(0.2), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.8
+                    )
+                }
+                .shadow(color: .black.opacity(0.26), radius: 24, y: 12)
+        }
     }
 }
 

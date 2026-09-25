@@ -79,3 +79,24 @@ import Testing
     #expect(result.logEntry == nil)
     #expect(result.completedKind == .shortBreak)
 }
+
+@Test func changingDurationsRefreshesAnIdleSession() throws {
+    let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+
+    coordinator.updateSettings(try .init(focusMinutes: 40, shortBreakMinutes: 8, longBreakMinutes: 20))
+
+    #expect(coordinator.timer.durationSeconds == 2_400)
+    #expect(coordinator.timer.remainingSeconds == 2_400)
+}
+
+@Test func changingDurationsDoesNotInterruptARunningSession() throws {
+    let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 60))
+
+    coordinator.updateSettings(try .init(focusMinutes: 40, shortBreakMinutes: 8, longBreakMinutes: 20))
+
+    #expect(coordinator.timer.state == .running)
+    #expect(coordinator.timer.remainingSeconds == 1_440)
+    #expect(coordinator.settings.focusMinutes == 40)
+}

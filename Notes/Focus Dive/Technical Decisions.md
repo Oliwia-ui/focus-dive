@@ -58,6 +58,18 @@ Compute discoveries from completed history count and derive weekly profile, stre
 
 Pass Reduce Motion into continuous visual effects and progress animation. With reduced motion enabled, decorative drift is effectively frozen and progress transitions are not animated.
 
+## TD-010 — Edit durations without interrupting active work
+
+**Status:** Accepted
+
+Expose bounded duration editors directly from the visible session queue. Updating settings refreshes an idle session immediately, while a running or paused countdown keeps its original duration and elapsed-time anchor. New settings apply when the next session is created.
+
+## TD-011 — Prefer native glass with a deployment-compatible fallback
+
+**Status:** Accepted
+
+Use the native macOS 26 glass effect when available. Preserve the macOS 14 deployment target with an ultra-thin material fallback, restrained cyan edge reflection, and the same panel shape so the visual hierarchy remains consistent across supported systems.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

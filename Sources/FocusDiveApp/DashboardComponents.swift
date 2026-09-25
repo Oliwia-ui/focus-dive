@@ -40,6 +40,7 @@ struct RightRail: View {
 
 struct SessionQueueCard: View {
     @ObservedObject var model: FocusDiveViewModel
+    @StateObject private var editing = SessionQueueEditingState()
 
     private var queue: [(SessionKind, Int)] {
         [
@@ -60,27 +61,41 @@ struct SessionQueueCard: View {
             }
 
             ForEach(Array(queue.enumerated()), id: \.offset) { index, item in
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle().stroke(Color.diveAqua.opacity(0.75), lineWidth: 1.5)
-                        if index == activeIndex {
-                            Circle().fill(Color.diveCyan.opacity(0.28)).padding(5)
-                            Circle().stroke(Color.diveCyan, lineWidth: 2).padding(5)
+                Button {
+                    editing.index = index
+                } label: {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle().stroke(Color.diveAqua.opacity(0.75), lineWidth: 1.5)
+                            if index == activeIndex {
+                                Circle().fill(Color.diveCyan.opacity(0.28)).padding(5)
+                                Circle().stroke(Color.diveCyan, lineWidth: 2).padding(5)
+                            }
                         }
-                    }
-                    .frame(width: 29, height: 29)
-                    .shadow(color: index == activeIndex ? .diveCyan : .clear, radius: 9)
+                        .frame(width: 29, height: 29)
+                        .shadow(color: index == activeIndex ? .diveCyan : .clear, radius: 9)
 
-                    Text(item.0.title.replacingOccurrences(of: " Surface", with: ""))
-                        .font(.system(size: 14, weight: index == activeIndex ? .medium : .regular, design: .rounded))
-                    Spacer()
-                    Text("\(item.1) min")
-                        .font(.system(size: 13, weight: .regular, design: .rounded))
-                        .foregroundStyle(Color.diveAqua)
+                        Text(item.0.title.replacingOccurrences(of: " Surface", with: ""))
+                            .font(.system(size: 14, weight: index == activeIndex ? .medium : .regular, design: .rounded))
+                        Spacer()
+                        Text("\(item.1) min")
+                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .foregroundStyle(Color.diveAqua)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Color.diveAqua.opacity(0.48))
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 8)
+                    .background(index == activeIndex ? Color.diveCyan.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 10))
                 }
-                .padding(.vertical, 5)
-                .padding(.horizontal, 8)
-                .background(index == activeIndex ? Color.diveCyan.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 10))
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("session-row-\(index)")
+                .accessibilityHint("Change this session duration")
+                .popover(isPresented: editorBinding(for: index), arrowEdge: .trailing) {
+                    SessionDurationEditor(model: model, kind: item.0)
+                }
             }
         }
         .padding(22)
@@ -89,6 +104,100 @@ struct SessionQueueCard: View {
 
     private var activeIndex: Int {
         model.coordinator.queuePosition
+    }
+
+    private func editorBinding(for index: Int) -> Binding<Bool> {
+        Binding(
+            get: { editing.index == index },
+            set: { isPresented in
+                if !isPresented, editing.index == index {
+                    editing.index = nil
+                }
+            }
+        )
+    }
+}
+
+private final class SessionQueueEditingState: ObservableObject {
+    @Published var index: Int?
+}
+
+private struct SessionDurationEditor: View {
+    @ObservedObject var model: FocusDiveViewModel
+    let kind: SessionKind
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var editing: SessionDurationEditingState
+
+    init(model: FocusDiveViewModel, kind: SessionKind) {
+        self.model = model
+        self.kind = kind
+        _editing = StateObject(wrappedValue: SessionDurationEditingState(minutes: model.minutes(for: kind)))
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            VStack(spacing: 5) {
+                SectionLabel(title: kind.title.replacingOccurrences(of: " Surface", with: ""))
+                Text("\(editing.minutes) min")
+                    .font(.system(size: 34, weight: .light, design: .rounded))
+                    .monospacedDigit()
+            }
+
+            Stepper(value: $editing.minutes, in: allowedRange, step: 1) {
+                Text("Duration")
+                    .foregroundStyle(Color.diveText)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(presets, id: \.self) { preset in
+                    Button("\(preset)") { editing.minutes = preset }
+                        .buttonStyle(.bordered)
+                        .tint(editing.minutes == preset ? Color.diveCyan : Color.diveAqua.opacity(0.45))
+                        .accessibilityIdentifier("duration-preset-\(preset)")
+                }
+            }
+
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Button("Apply") {
+                    model.updateDuration(for: kind, minutes: editing.minutes)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.diveCobalt)
+                .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("apply-session-duration")
+            }
+        }
+        .padding(22)
+        .frame(width: 270)
+        .foregroundStyle(Color.diveText)
+        .divePanel()
+    }
+
+    private var allowedRange: ClosedRange<Int> {
+        switch kind {
+        case .focus: 1...120
+        case .shortBreak: 1...30
+        case .longBreak: 1...60
+        }
+    }
+
+    private var presets: [Int] {
+        switch kind {
+        case .focus: [15, 25, 45, 60]
+        case .shortBreak: [3, 5, 10, 15]
+        case .longBreak: [10, 15, 20, 30]
+        }
+    }
+}
+
+private final class SessionDurationEditingState: ObservableObject {
+    @Published var minutes: Int
+
+    init(minutes: Int) {
+        self.minutes = minutes
     }
 }
 
