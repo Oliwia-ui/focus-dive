@@ -5,7 +5,7 @@ struct RightRail: View {
     @ObservedObject var model: FocusDiveViewModel
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             SessionQueueCard(model: model)
             WeeklyDepthProfile(history: model.history)
             controlRow
@@ -20,6 +20,7 @@ struct RightRail: View {
             control("stop.fill", label: "Stop", action: model.stop)
         }
         .frame(maxWidth: .infinity)
+        .opacity(0.78)
     }
 
     private func control(_ icon: String, label: String, action: @escaping () -> Void) -> some View {
@@ -105,26 +106,50 @@ struct WeeklyDepthProfile: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionLabel(title: "Weekly depth profile")
-            HStack(alignment: .bottom, spacing: 16) {
-                ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                    VStack(spacing: 8) {
-                        ZStack(alignment: .bottom) {
-                            Capsule().fill(Color.diveAqua.opacity(0.07))
-                            Capsule()
-                                .fill(LinearGradient(colors: [.diveCyan, .diveCobalt.opacity(0.25)], startPoint: .top, endPoint: .bottom))
-                                .frame(height: max(12, 82 * value))
-                                .shadow(color: .diveCyan.opacity(value > 0 ? 0.45 : 0), radius: 7)
+            HStack(alignment: .top, spacing: 10) {
+                ZStack(alignment: .bottom) {
+                    VStack {
+                        Rectangle().fill(Color.diveAqua.opacity(0.2)).frame(height: 0.7)
+                        Spacer()
+                        Rectangle().fill(Color.diveAqua.opacity(0.14)).frame(height: 0.7)
+                        Spacer()
+                        Rectangle().fill(Color.diveAqua.opacity(0.12)).frame(height: 0.7)
+                    }
+                    .frame(height: 92)
+
+                    HStack(alignment: .bottom, spacing: 15) {
+                        ForEach(Array(values.enumerated()), id: \.offset) { index, value in
+                            VStack(spacing: 8) {
+                                ZStack(alignment: .bottom) {
+                                    Capsule().fill(Color.diveAqua.opacity(0.035))
+                                    Capsule()
+                                        .fill(LinearGradient(colors: [.diveCyan, .diveCobalt.opacity(0.22)], startPoint: .top, endPoint: .bottom))
+                                        .frame(height: max(12, 78 * value))
+                                        .shadow(color: .diveCyan.opacity(value > 0 ? 0.45 : 0), radius: 7)
+                                }
+                                .frame(width: 16, height: 82)
+                                Text(dayLetter(index))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(Color.diveAqua)
+                            }
                         }
-                        .frame(width: 16, height: 86)
-                        Text(dayLetter(index))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(Color.diveAqua)
                     }
                 }
+                .frame(maxWidth: .infinity)
+
+                VStack(alignment: .trailing) {
+                    Text("40 m")
+                    Spacer()
+                    Text("20 m")
+                    Spacer()
+                    Text("0 m")
+                }
+                .font(.system(size: 9, weight: .regular, design: .default))
+                .foregroundStyle(Color.diveAqua)
+                .frame(height: 92)
             }
-            .frame(maxWidth: .infinity)
         }
         .padding(22)
         .divePanel()

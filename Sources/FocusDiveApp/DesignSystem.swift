@@ -14,14 +14,20 @@ extension Color {
 struct DivePanelModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(.black.opacity(0.22))
-            .background(.ultraThinMaterial.opacity(0.18))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(
+                LinearGradient(
+                    colors: [Color(red: 0.018, green: 0.095, blue: 0.15).opacity(0.78), .black.opacity(0.42)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .background(.ultraThinMaterial.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.diveAqua.opacity(0.28), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.diveAqua.opacity(0.3), lineWidth: 0.8)
             }
-            .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
+            .shadow(color: .black.opacity(0.28), radius: 22, y: 10)
     }
 }
 
@@ -34,8 +40,8 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(title.uppercased())
-            .font(.system(size: 12, weight: .medium, design: .rounded))
-            .tracking(3.2)
+            .font(.system(size: 11, weight: .medium, design: .default))
+            .tracking(3.6)
             .foregroundStyle(Color.diveAqua.opacity(0.82))
     }
 }

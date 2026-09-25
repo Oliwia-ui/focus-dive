@@ -9,35 +9,44 @@ struct FocusDiveDashboard: View {
         ZStack {
             OceanBackground(progress: model.progress, reduceMotion: reduceMotion)
 
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.diveAbyss.opacity(0.08))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.diveAqua.opacity(0.46), lineWidth: 0.8)
+                }
+                .padding(.horizontal, 38)
+                .padding(.vertical, 38)
+                .allowsHitTesting(false)
+
             VStack(spacing: 0) {
                 header
-                    .padding(.horizontal, 28)
-                    .padding(.top, 18)
+                    .padding(.horizontal, 58)
+                    .padding(.top, 42)
 
-                HStack(alignment: .center, spacing: 28) {
+                HStack(alignment: .center, spacing: 20) {
                     DepthGauge(depth: model.depth, isRunning: model.isRunning)
-                        .frame(width: 118)
+                        .frame(width: 280)
 
-                    VStack(spacing: 22) {
-                        missionField
+                    VStack(spacing: 8) {
                         TimerConsole(model: model, reduceMotion: reduceMotion)
-                            .frame(maxWidth: 610, maxHeight: 610)
+                            .frame(maxWidth: 580, maxHeight: 580)
                         Text("DEEPER WORK  •  BRIGHTER DAYS")
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .font(.system(size: 10, weight: .medium, design: .default))
                             .tracking(4)
                             .foregroundStyle(Color.diveAqua.opacity(0.65))
                     }
                     .frame(maxWidth: .infinity)
 
                     RightRail(model: model)
-                        .frame(width: 330)
+                        .frame(width: 350)
                 }
-                .padding(.horizontal, 28)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 58)
+                .padding(.bottom, 10)
 
                 bottomBar
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, 58)
+                    .padding(.bottom, 52)
             }
 
             if let notice = model.completionNotice {
@@ -59,7 +68,7 @@ struct FocusDiveDashboard: View {
             }
         }
         .foregroundStyle(Color.diveText)
-        .frame(minWidth: 1_100, minHeight: 720)
+        .frame(minWidth: 1_180, minHeight: 760)
         .onAppear { model.requestNotificationPermission() }
     }
 
@@ -129,20 +138,6 @@ struct FocusDiveDashboard: View {
         .frame(height: 58)
     }
 
-    private var missionField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "scope")
-                .foregroundStyle(Color.diveCyan)
-            TextField("Set a current mission…", text: $model.mission)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .accessibilityLabel("Current mission")
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: 420, minHeight: 38)
-        .background(.black.opacity(0.16), in: Capsule())
-        .overlay(Capsule().stroke(Color.diveAqua.opacity(0.2)))
-    }
 
     private var bottomBar: some View {
         HStack(alignment: .bottom) {
@@ -164,50 +159,94 @@ struct TimerConsole: View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
             ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.diveCyan.opacity(0.24),
+                                Color.diveCobalt.opacity(0.11),
+                                Color.diveAbyss.opacity(0.48)
+                            ],
+                            center: UnitPoint(x: 0.5, y: 0.03),
+                            startRadius: 0,
+                            endRadius: side * 0.62
+                        )
+                    )
+                    .padding(53)
+
                 BubbleField(reduceMotion: reduceMotion)
                     .frame(width: side, height: side)
 
                 Circle()
-                    .stroke(Color.diveCyan.opacity(0.12), lineWidth: 22)
-                    .padding(30)
+                    .stroke(Color.diveCyan.opacity(0.08), lineWidth: 12)
+                    .padding(31)
 
                 Circle()
-                    .trim(from: 0, to: max(0.002, 1 - model.progress))
+                    .trim(from: 0, to: min(1, 0.19 + model.progress * 0.81))
                     .stroke(
-                        AngularGradient(colors: [.diveCyan, .white, .diveCyan.opacity(0.65)], center: .center),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                        AngularGradient(colors: [.white, .diveCyan, .diveCyan.opacity(0.42)], center: .center),
+                        style: StrokeStyle(lineWidth: 13, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .padding(30)
-                    .shadow(color: .diveCyan.opacity(0.72), radius: 14)
+                    .padding(31)
+                    .shadow(color: .diveCyan.opacity(0.72), radius: 12)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.5), value: model.progress)
 
                 Circle()
-                    .stroke(Color.diveCyan.opacity(0.62), lineWidth: 1)
-                    .padding(17)
-                Circle()
-                    .stroke(Color.diveAqua.opacity(0.18), lineWidth: 1)
-                    .padding(42)
+                    .trim(from: 0.54, to: 0.72)
+                    .stroke(
+                        LinearGradient(colors: [.diveCyan.opacity(0.95), .diveCobalt.opacity(0.25)], startPoint: .top, endPoint: .bottom),
+                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .padding(31)
+                    .shadow(color: .diveCyan.opacity(0.45), radius: 9)
 
-                VStack(spacing: 26) {
-                    VStack(spacing: 8) {
+                Circle()
+                    .stroke(Color.diveCyan.opacity(0.66), lineWidth: 0.9)
+                    .padding(18)
+                Circle()
+                    .stroke(Color.diveAqua.opacity(0.28), lineWidth: 0.8)
+                    .padding(44)
+                Circle()
+                    .stroke(Color.diveCobalt.opacity(0.34), lineWidth: 2)
+                    .padding(53)
+
+                VStack(spacing: 20) {
+                    VStack(spacing: 10) {
                         Text(model.currentKind.title.uppercased())
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .tracking(3)
+                            .font(.system(size: 10, weight: .medium, design: .default))
+                            .tracking(3.8)
                             .foregroundStyle(Color.diveAqua)
                         Text(formattedTime)
-                            .font(.system(size: side * 0.185, weight: .ultraLight, design: .rounded))
+                            .font(.system(size: side * 0.2, weight: .ultraLight, design: .default))
                             .monospacedDigit()
                             .contentTransition(.numericText())
                             .accessibilityIdentifier("timer-display")
                             .accessibilityLabel("Time remaining \(formattedTime)")
                     }
 
+                    HStack(spacing: 7) {
+                        Image(systemName: "scope")
+                            .font(.system(size: 10, weight: .light))
+                            .foregroundStyle(Color.diveCyan.opacity(0.75))
+                        TextField("Set current mission", text: $model.mission)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 11, weight: .regular, design: .default))
+                            .multilineTextAlignment(.center)
+                            .accessibilityLabel("Current mission")
+                    }
+                    .frame(width: 220)
+                    .padding(.vertical, 5)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(Color.diveAqua.opacity(0.22)).frame(height: 0.7)
+                    }
+
                     Button(action: model.toggleTimer) {
                         Image(systemName: model.isRunning ? "pause.fill" : "play.fill")
-                            .font(.system(size: 24, weight: .semibold))
-                            .frame(width: 72, height: 72)
-                            .background(.black.opacity(0.25), in: Circle())
+                            .font(.system(size: 23, weight: .semibold))
+                            .frame(width: 70, height: 70)
+                            .background(Color(red: 0.015, green: 0.13, blue: 0.21).opacity(0.82), in: Circle())
                             .overlay(Circle().stroke(Color.diveCyan.opacity(0.55)))
                             .shadow(color: .diveCyan.opacity(0.28), radius: 18)
                     }
@@ -246,37 +285,64 @@ struct DepthGauge: View {
     let isRunning: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("\(Int(depth.rounded())) m")
-                .font(.system(size: 42, weight: .light, design: .rounded))
-                .monospacedDigit()
-            SectionLabel(title: isRunning ? "Ascending" : "Ready")
+        GeometryReader { proxy in
+            let gaugeHeight = min(520, proxy.size.height)
+            let markerY = min(gaugeHeight - 10, max(10, gaugeHeight * depth / 60))
 
-            GeometryReader { proxy in
-                ZStack(alignment: .bottom) {
-                    Rectangle()
-                        .fill(Color.diveAqua.opacity(0.16))
-                        .frame(width: 1)
-
-                    Capsule()
-                        .fill(LinearGradient(colors: [.diveCyan, .diveCyan.opacity(0.08)], startPoint: .bottom, endPoint: .top))
-                        .frame(width: 12, height: proxy.size.height * max(0.02, depth / 60))
-                        .overlay(Capsule().stroke(Color.diveCyan.opacity(0.55)))
-                        .shadow(color: .diveCyan.opacity(0.6), radius: 8)
-
-                    VStack {
-                        ForEach(0..<13) { _ in
-                            Rectangle().fill(Color.diveAqua.opacity(0.7)).frame(width: 18, height: 1)
-                            Spacer()
-                        }
-                    }
-                    .frame(maxHeight: .infinity)
+            ZStack(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("\(Int(depth.rounded())) m")
+                        .font(.system(size: 43, weight: .light, design: .default))
+                        .monospacedDigit()
+                    Text(isRunning ? "A S C E N D I N G" : "D E S C E N D I N G")
+                        .font(.system(size: 10, weight: .medium, design: .default))
+                        .foregroundStyle(Color.diveAqua)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .offset(x: 74, y: 18)
+
+                Rectangle()
+                    .fill(Color.diveAqua.opacity(0.24))
+                    .frame(width: 0.8, height: gaugeHeight)
+                    .offset(x: 50)
+
+                Rectangle()
+                    .fill(Color.diveCyan.opacity(0.9))
+                    .frame(width: 36, height: 1)
+                    .offset(x: 14)
+                    .shadow(color: .diveCyan.opacity(0.85), radius: 5)
+
+                VStack(spacing: 0) {
+                    ForEach(0..<25) { index in
+                        Rectangle()
+                            .fill(Color.diveAqua.opacity(index.isMultiple(of: 2) ? 0.8 : 0.45))
+                            .frame(width: index.isMultiple(of: 2) ? 20 : 11, height: 0.8)
+                        if index < 24 { Spacer() }
+                    }
+                }
+                .frame(width: 22, height: gaugeHeight)
+                .offset(x: 14)
+
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(
+                        LinearGradient(
+                            colors: [.diveCyan.opacity(0.72), .diveCobalt.opacity(0.08)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 12, height: max(4, gaugeHeight - markerY))
+                    .offset(x: 44, y: markerY)
+
+                Circle()
+                    .fill(Color.diveText)
+                    .frame(width: 18, height: 18)
+                    .overlay(Circle().stroke(Color.diveCyan, lineWidth: 1))
+                    .shadow(color: .diveCyan, radius: 13)
+                    .offset(x: 41, y: markerY - 9)
             }
-            .frame(height: 440)
-            .accessibilityLabel("Current depth \(Int(depth.rounded())) meters")
+            .frame(width: proxy.size.width, height: gaugeHeight, alignment: .topLeading)
         }
-        .padding(.leading, 12)
+        .frame(height: 520)
+        .accessibilityLabel("Current depth \(Int(depth.rounded())) meters")
     }
 }
