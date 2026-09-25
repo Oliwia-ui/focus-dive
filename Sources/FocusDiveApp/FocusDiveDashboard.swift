@@ -116,6 +116,12 @@ struct FocusDiveDashboard: View {
             Spacer()
 
             HStack(spacing: 22) {
+                Button { model.showTasks.toggle() } label: {
+                    Image(systemName: "checklist")
+                }
+                .help("Open tasks")
+                .accessibilityLabel("Open tasks")
+
                 Button { model.showLogbook.toggle() } label: {
                     Image(systemName: "waveform.path.ecg")
                 }

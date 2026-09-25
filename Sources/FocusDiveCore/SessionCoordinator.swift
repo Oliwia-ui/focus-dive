@@ -15,6 +15,7 @@ public final class SessionCoordinator {
     public private(set) var completedFocusSessions = 0
     public private(set) var queuePosition = 0
     public var mission = ""
+    public var linkedTaskID: UUID?
 
     public init(settings: DurationSettings = .standard) {
         self.settings = settings
@@ -55,6 +56,7 @@ public final class SessionCoordinator {
                 completedAt: date,
                 durationSeconds: settings.duration(for: .focus),
                 taskName: mission.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled focus dive" : mission,
+                taskID: linkedTaskID,
                 depthReachedMeters: 60,
                 note: ""
             )

@@ -5,6 +5,7 @@ public struct DiveLogEntry: Codable, Equatable, Identifiable, Sendable {
     public let completedAt: Date
     public let durationSeconds: Int
     public let taskName: String
+    public let taskID: UUID?
     public let depthReachedMeters: Double
     public var note: String
 
@@ -13,6 +14,7 @@ public struct DiveLogEntry: Codable, Equatable, Identifiable, Sendable {
         completedAt: Date,
         durationSeconds: Int,
         taskName: String,
+        taskID: UUID? = nil,
         depthReachedMeters: Double,
         note: String
     ) {
@@ -20,6 +22,7 @@ public struct DiveLogEntry: Codable, Equatable, Identifiable, Sendable {
         self.completedAt = completedAt
         self.durationSeconds = durationSeconds
         self.taskName = taskName
+        self.taskID = taskID
         self.depthReachedMeters = depthReachedMeters
         self.note = note
     }

@@ -2,6 +2,21 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-25 — Task workspace and session linking
+
+### Added
+
+- Added a native task workspace for creating, viewing, editing, deleting, completing, and reopening tasks.
+- Added dashboard, menu, and keyboard access to Tasks.
+- Added a “Focus” action that links an open task to the next focus dive and fills the mission title.
+- Stored the linked task identifier on completed focus-session records while retaining free-form mission descriptions.
+- Added accessibility labels and stable identifiers for task creation and editing controls.
+
+### Verified
+
+- `swift build --product FocusDive` succeeds.
+- All 17 core tests pass, including linked-task session history coverage.
+
 ## 2026-09-25 — Local task foundation
 
 ### Added

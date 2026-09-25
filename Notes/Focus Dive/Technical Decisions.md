@@ -76,6 +76,12 @@ Use the native macOS 26 glass effect when available. Preserve the macOS 14 deplo
 
 Persist task records alongside settings and dive history in the existing local JSON snapshot. Decode a missing `tasks` key as an empty collection so snapshots created by earlier builds remain readable. Keep task lifecycle rules in `FocusDiveCore`; the SwiftUI view model exposes thin persistence-backed operations.
 
+## TD-013 — Link sessions to tasks without removing free-form missions
+
+**Status:** Accepted
+
+Keep the existing mission field as the human-readable activity description and add an optional task identifier to completed dive records. Selecting an open task fills the mission title, but users can still refine the activity description before starting. This satisfies task/session traceability without forcing every focus dive into a task.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

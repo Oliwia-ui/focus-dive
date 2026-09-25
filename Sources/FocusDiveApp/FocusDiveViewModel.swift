@@ -12,7 +12,9 @@ final class FocusDiveViewModel: ObservableObject {
     @Published var mission: String
     @Published var showSettings = false
     @Published var showLogbook = false
+    @Published var showTasks = false
     @Published var isCompact = false
+    @Published var selectedTaskID: UUID?
     @Published var discovery: Discovery?
     @Published var completionNotice: CompletionNotice?
     @Published var persistenceError: String?
@@ -49,6 +51,7 @@ final class FocusDiveViewModel: ObservableObject {
         history = snapshot.history
         tasks = TaskCollection(items: snapshot.tasks)
         mission = ""
+        selectedTaskID = nil
         discovery = Self.discovery(for: snapshot.history.count)
         completionNotice = nil
     }
@@ -75,6 +78,7 @@ final class FocusDiveViewModel: ObservableObject {
         } else {
             completionNotice = nil
             coordinator.mission = mission
+            coordinator.linkedTaskID = selectedTaskID
             coordinator.start()
             startTicker()
         }
@@ -165,7 +169,16 @@ final class FocusDiveViewModel: ObservableObject {
 
     func deleteTask(id: UUID) throws {
         try tasks.delete(id: id)
+        if selectedTaskID == id {
+            selectedTaskID = nil
+        }
         persist()
+    }
+
+    func linkTask(_ id: UUID?) {
+        selectedTaskID = id
+        guard let id, let task = tasks.items.first(where: { $0.id == id }) else { return }
+        mission = task.title
     }
 
     func requestNotificationPermission() {

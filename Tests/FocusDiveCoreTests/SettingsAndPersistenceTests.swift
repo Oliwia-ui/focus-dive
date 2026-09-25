@@ -21,12 +21,15 @@ import Testing
 
 @Test func sessionCompletionCreatesDiveLogEntry() throws {
     let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+    let taskID = UUID()
     coordinator.mission = "Finish project proposal"
+    coordinator.linkedTaskID = taskID
     coordinator.start(at: Date(timeIntervalSince1970: 100))
 
     let entry = coordinator.completeCurrentSession(at: Date(timeIntervalSince1970: 1_600))
 
     #expect(entry?.taskName == "Finish project proposal")
+    #expect(entry?.taskID == taskID)
     #expect(entry?.durationSeconds == 1_500)
     #expect(entry?.depthReachedMeters == 60)
     #expect(coordinator.currentKind == .shortBreak)

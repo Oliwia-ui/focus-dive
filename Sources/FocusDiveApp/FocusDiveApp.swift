@@ -21,6 +21,9 @@ struct FocusDiveApp: App {
             .sheet(isPresented: $model.showLogbook) {
                 LogbookView(model: model)
             }
+            .sheet(isPresented: $model.showTasks) {
+                TaskListView(model: model)
+            }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1_440, height: 900)
@@ -43,6 +46,8 @@ struct FocusDiveApp: App {
                     .keyboardShortcut(",", modifiers: [.command])
                 Button("Open Dive Log") { model.showLogbook = true }
                     .keyboardShortcut("l", modifiers: [.command])
+                Button("Open Tasks") { model.showTasks = true }
+                    .keyboardShortcut("t", modifiers: [.command])
                 Button("Toggle Mini Timer") { model.isCompact.toggle() }
                     .keyboardShortcut("m", modifiers: [.command, .shift])
             }
@@ -60,6 +65,7 @@ struct FocusDiveApp: App {
                 Button("Skip") { model.skip() }
                 Divider()
                 Button("Settings…") { model.showSettings = true }
+                Button("Tasks…") { model.showTasks = true }
                 Button("Quit Focus Dive") { NSApplication.shared.terminate(nil) }
             }
             .padding(8)
