@@ -2,7 +2,7 @@ name: macOS CI
 
 on:
   push:
-    branches: [main, feat/mvp]
+    branches: [main]
   pull_request:
     branches: [main]
 

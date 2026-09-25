@@ -1,16 +1,13 @@
 import XCTest
 
 final class FocusDiveUITests: XCTestCase {
-    private var app: XCUIApplication!
-
-    override func setUpWithError() throws {
+    @MainActor
+    func testStartPauseAndResetControls() {
         continueAfterFailure = false
-        app = XCUIApplication()
+        let app = XCUIApplication()
         app.launchEnvironment["FOCUS_DIVE_UI_TESTING"] = "1"
         app.launch()
-    }
 
-    func testStartPauseAndResetControls() {
         let primary = app.buttons["primary-timer-control"]
         XCTAssertTrue(primary.waitForExistence(timeout: 5))
         XCTAssertEqual(primary.label, "Start focus timer")
