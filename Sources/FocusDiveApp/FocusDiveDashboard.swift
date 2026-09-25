@@ -162,6 +162,7 @@ struct TimerConsole: View {
                             .font(.system(size: side * 0.185, weight: .ultraLight, design: .rounded))
                             .monospacedDigit()
                             .contentTransition(.numericText())
+                            .accessibilityIdentifier("timer-display")
                             .accessibilityLabel("Time remaining \(formattedTime)")
                     }
 

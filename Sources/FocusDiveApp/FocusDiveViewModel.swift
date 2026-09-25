@@ -17,9 +17,17 @@ final class FocusDiveViewModel: ObservableObject {
     private let store: JSONDiveStore
     private var ticker: Timer?
 
-    init(store: JSONDiveStore = JSONDiveStore()) {
-        self.store = store
-        let snapshot = (try? store.load()) ?? AppSnapshot(settings: .standard, history: [])
+    init(store: JSONDiveStore? = nil) {
+        let resolvedStore: JSONDiveStore
+        if let store {
+            resolvedStore = store
+        } else if ProcessInfo.processInfo.environment["FOCUS_DIVE_UI_TESTING"] == "1" {
+            resolvedStore = JSONDiveStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("FocusDiveUITests"))
+        } else {
+            resolvedStore = JSONDiveStore()
+        }
+        self.store = resolvedStore
+        let snapshot = (try? resolvedStore.load()) ?? AppSnapshot(settings: .standard, history: [])
         coordinator = SessionCoordinator(settings: snapshot.settings)
         history = snapshot.history
         mission = ""
@@ -76,7 +84,8 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func requestNotificationPermission() {
-        guard Bundle.main.bundleIdentifier != nil else { return }
+        guard ProcessInfo.processInfo.environment["FOCUS_DIVE_UI_TESTING"] != "1",
+              Bundle.main.bundleIdentifier != nil else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
     }
 
