@@ -82,6 +82,12 @@ Persist task records alongside settings and dive history in the existing local J
 
 Keep the existing mission field as the human-readable activity description and add an optional task identifier to completed dive records. Selecting an open task fills the mission title, but users can still refine the activity description before starting. This satisfies task/session traceability without forcing every focus dive into a task.
 
+## TD-014 — Append events to date-based Obsidian Markdown logs
+
+**Status:** Accepted
+
+Use one Markdown file per date and event category inside the selected vault. Create the file once with a heading, then seek to the end and append immutable event blocks with unique event identifiers. This keeps logs readable in Obsidian, prevents silent replacement of older records, and avoids generating a large number of single-event files.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

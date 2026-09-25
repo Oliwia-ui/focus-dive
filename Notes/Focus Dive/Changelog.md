@@ -2,6 +2,20 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-25 — Append-only Obsidian record writer
+
+### Added
+
+- Added a tested Markdown event writer for user-selected Obsidian vaults.
+- Created predictable `Focus Dive/Tasks`, `Focus Dive/Sessions`, and `Focus Dive/Reflections` categories.
+- Appended events to date-based Markdown files without replacing earlier records.
+- Included local date, time, timezone, event type, status, task/activity, task identifier, actual duration, and a unique event identifier.
+- Sanitized multiline values so one activity cannot corrupt subsequent Markdown fields.
+
+### Verified
+
+- Added tests proving multiple task events remain in one daily log and cancelled sessions include actual elapsed duration.
+
 ## 2026-09-25 — Task workspace and session linking
 
 ### Added
