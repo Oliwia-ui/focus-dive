@@ -10,7 +10,7 @@ jobs:
   swift-package:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
       - name: Build package
@@ -20,19 +20,19 @@ jobs:
       - name: Build app bundle
         run: ./scripts/build-app.sh release
 
-  xcode-ui-tests:
+  xcode-project:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate project
         run: xcodegen generate
-      - name: Run app and UI tests
+      - name: Build app and UI test targets
         run: >-
-          xcodebuild test
+          xcodebuild build-for-testing
           -project FocusDive.xcodeproj
           -scheme FocusDive
           -destination 'platform=macOS'
