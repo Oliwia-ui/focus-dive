@@ -64,11 +64,11 @@ Pass Reduce Motion into continuous visual effects and progress animation. With r
 
 Expose bounded duration editors directly from the visible session queue. Updating settings refreshes an idle session immediately, while a running or paused countdown keeps its original duration and elapsed-time anchor. New settings apply when the next session is created.
 
-## TD-011 — Prefer native glass with a deployment-compatible fallback
+## TD-011 — Use one deployment-compatible glass treatment
 
 **Status:** Accepted
 
-Use the native macOS 26 glass effect when available. Preserve the macOS 14 deployment target with an ultra-thin material fallback, restrained cyan edge reflection, and the same panel shape so the visual hierarchy remains consistent across supported systems.
+Use ultra-thin material, a restrained navy tint, soft cyan edge reflection, and the same panel shape across the supported macOS 14+ range. Avoid compile-time dependencies on newer SwiftUI-only glass APIs so SwiftPM and Xcode 16 CI remain valid while preserving the intended layered-glass direction.
 
 ## TD-012 — Extend the existing snapshot for local tasks
 

@@ -12,44 +12,24 @@ extension Color {
 }
 
 struct DivePanelModifier: ViewModifier {
-    @ViewBuilder
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
 
-        if #available(macOS 26.0, *) {
-            content
-                .glassEffect(
-                    .regular.tint(Color.diveNavy.opacity(0.18)),
-                    in: shape
+        content
+            .background(.ultraThinMaterial)
+            .background(Color.diveNavy.opacity(0.26))
+            .clipShape(shape)
+            .overlay {
+                shape.stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.18), Color.diveAqua.opacity(0.2), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.8
                 )
-                .overlay {
-                    shape.stroke(
-                        LinearGradient(
-                            colors: [.white.opacity(0.24), Color.diveAqua.opacity(0.18), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.8
-                    )
-                }
-                .shadow(color: .black.opacity(0.26), radius: 24, y: 12)
-        } else {
-            content
-                .background(.ultraThinMaterial)
-                .background(Color.diveNavy.opacity(0.26))
-                .clipShape(shape)
-                .overlay {
-                    shape.stroke(
-                        LinearGradient(
-                            colors: [.white.opacity(0.18), Color.diveAqua.opacity(0.2), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.8
-                    )
-                }
-                .shadow(color: .black.opacity(0.26), radius: 24, y: 12)
-        }
+            }
+            .shadow(color: Color.black.opacity(0.26), radius: 24, y: 12)
     }
 }
 

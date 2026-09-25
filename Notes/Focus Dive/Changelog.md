@@ -2,6 +2,14 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-25 — Restore Xcode 16 compatibility
+
+### Fixed
+
+- Removed the compile-time dependency on the macOS 26-only SwiftUI glass API.
+- Kept the premium translucent panel treatment using material, tint, reflection, and shadow APIs supported by the macOS 14 deployment toolchain.
+- Restored Swift Package and Xcode project compilation on GitHub’s Xcode 16.4 runner.
+
 ## 2026-09-25 — Append-only Obsidian record writer
 
 ### Added
@@ -51,7 +59,7 @@ All notable project changes are recorded here.
 - Made every session queue row interactive with an accessible duration editor.
 - Added bounded one-minute adjustments and useful presets for focus, short-break, and long-break sessions.
 - Applied duration changes immediately while preserving an active countdown instead of resetting it.
-- Refined dashboard panels with restrained native glass treatment on macOS 26 and a material fallback on macOS 14–15.
+- Refined dashboard panels with a restrained material-based glass treatment that compiles across the supported macOS toolchain.
 
 ### Verified
 
