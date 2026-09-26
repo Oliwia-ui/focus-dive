@@ -2,6 +2,35 @@ import Foundation
 import Testing
 @testable import FocusDiveCore
 
+@Test func floatingTimerAppearsOnlyForRunningSessionsAwayFromTheMainWindow() {
+    #expect(FloatingTimerVisibility.shouldShow(
+        isRunning: true,
+        isApplicationActive: false,
+        isMainWindowMiniaturized: false
+    ))
+    #expect(FloatingTimerVisibility.shouldShow(
+        isRunning: true,
+        isApplicationActive: true,
+        isMainWindowMiniaturized: true
+    ))
+    #expect(!FloatingTimerVisibility.shouldShow(
+        isRunning: true,
+        isApplicationActive: true,
+        isMainWindowMiniaturized: false
+    ))
+    #expect(!FloatingTimerVisibility.shouldShow(
+        isRunning: false,
+        isApplicationActive: false,
+        isMainWindowMiniaturized: true
+    ))
+    #expect(FloatingTimerVisibility.shouldShow(
+        isRunning: true,
+        isApplicationActive: true,
+        isMainWindowMiniaturized: false,
+        isPinned: true
+    ))
+}
+
 @Test func durationSettingsRejectNonPositiveValues() {
     #expect(throws: Error.self) {
         _ = try DurationSettings(focusMinutes: 0, shortBreakMinutes: 5, longBreakMinutes: 15)

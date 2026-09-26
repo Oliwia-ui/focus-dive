@@ -381,33 +381,66 @@ struct CompactTimerView: View {
     @ObservedObject var model: FocusDiveViewModel
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
             ZStack {
-                Circle().stroke(Color.diveCyan.opacity(0.2), lineWidth: 5)
+                Circle().stroke(Color.diveCyan.opacity(0.18), lineWidth: 5)
                 Circle()
-                    .trim(from: 0, to: max(0.002, 1 - model.progress))
+                    .trim(from: 0, to: max(0.002, min(1, model.presentationProgress)))
                     .stroke(Color.diveCyan, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                     .rotationEffect(.degrees(-90))
+                    .shadow(color: .diveCyan.opacity(0.45), radius: 6)
             }
             .frame(width: 48, height: 48)
-            VStack(alignment: .leading, spacing: 2) {
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(String(format: "%02d:%02d", model.remainingSeconds / 60, model.remainingSeconds % 60))
-                    .font(.system(size: 28, weight: .light, design: .rounded)).monospacedDigit()
+                    .font(.system(size: 28, weight: .light, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .frame(width: 112, alignment: .leading)
+                    .accessibilityLabel("Time remaining")
+                    .accessibilityValue(String(format: "%02d:%02d", model.remainingSeconds / 60, model.remainingSeconds % 60))
+                Text("IN PROGRESS")
+                    .font(.system(size: 8, weight: .semibold, design: .rounded))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.diveAmber)
                 Text(model.currentKind.title.uppercased())
-                    .font(.system(size: 8, weight: .medium)).tracking(2)
+                    .font(.system(size: 8, weight: .medium))
+                    .tracking(1.4)
                     .foregroundStyle(Color.diveAqua)
+                    .lineLimit(1)
+                    .frame(width: 150, alignment: .leading)
             }
-            Spacer()
+
+            Spacer(minLength: 0)
+
             Button(action: model.toggleTimer) {
-                Image(systemName: model.isRunning ? "pause.fill" : "play.fill")
-                    .frame(width: 36, height: 36)
-                    .background(Color.diveCyan.opacity(0.16), in: Circle())
+                Image(systemName: "pause.fill")
+                    .frame(width: 34, height: 34)
+                    .background(Color.diveCyan.opacity(0.15), in: Circle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Pause \(model.currentKind.title)")
+
+            Button(action: model.stop) {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 30, height: 30)
+                    .background(Color.diveAmber.opacity(0.12), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.diveAmber)
+            .accessibilityLabel("Stop \(model.currentKind.title)")
         }
-        .padding(18)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .foregroundStyle(Color.diveText)
-        .background(Color.diveAbyss)
-        .frame(width: 320)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.diveAbyss.opacity(0.9), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.diveAqua.opacity(0.32), lineWidth: 0.8)
+        }
+        .frame(width: 360, height: 108)
     }
 }

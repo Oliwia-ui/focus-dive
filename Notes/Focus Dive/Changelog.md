@@ -2,6 +2,25 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Floating browser companion timer
+
+### Added
+
+- Added a separate always-on-top compact timer panel that appears during a running session when Focus Dive is minimized or another application, such as a browser, is active.
+- Added pause and stop controls to the floating panel.
+- Made the panel draggable and snap to the nearest screen corner, remembering the chosen corner locally.
+- Added an optional pin control for keeping the floating timer visible while Focus Dive itself is active.
+
+### Changed
+
+- Kept the floating countdown and session label in fixed-width frames so changing time or session does not move the panel content.
+- Standardized READY, IN PROGRESS, PAUSED, and SURFACED labels on the amber status color across every session type.
+- Replaced the old main-window compact-layout toggle with the independent floating-timer pin.
+
+### Verified
+
+- Added presentation-policy tests covering running, inactive-app, minimized-window, paused/stopped, and pinned states.
+
 ## 2026-09-26 — Manual session selection and quieter timer console
 
 ### Changed

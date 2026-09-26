@@ -13,7 +13,7 @@ final class FocusDiveViewModel: ObservableObject {
     @Published var showSettings = false
     @Published var showLogbook = false
     @Published var showTasks = false
-    @Published var isCompact = false
+    @Published var keepFloatingTimerVisible = false
     @Published var selectedTaskID: UUID?
     @Published var discovery: Discovery?
     @Published var completionNotice: CompletionNotice?

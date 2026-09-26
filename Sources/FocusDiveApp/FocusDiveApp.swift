@@ -7,14 +7,9 @@ struct FocusDiveApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if model.isCompact {
-                    CompactTimerView(model: model)
-                } else {
-                    FocusDiveDashboard(model: model)
-                }
-            }
-            .preferredColorScheme(.dark)
+            FocusDiveDashboard(model: model)
+                .background(FloatingTimerWindowObserver(model: model))
+                .preferredColorScheme(.dark)
             .sheet(isPresented: $model.showSettings) {
                 SettingsView(model: model)
             }
@@ -48,7 +43,9 @@ struct FocusDiveApp: App {
                     .keyboardShortcut("l", modifiers: [.command])
                 Button("Open Tasks") { model.showTasks = true }
                     .keyboardShortcut("t", modifiers: [.command])
-                Button("Toggle Mini Timer") { model.isCompact.toggle() }
+                Button("Keep Floating Timer Visible") {
+                    model.keepFloatingTimerVisible.toggle()
+                }
                     .keyboardShortcut("m", modifiers: [.command, .shift])
             }
         }

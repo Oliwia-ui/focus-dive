@@ -118,6 +118,12 @@ Keep integer remaining seconds as the timer’s authoritative state and derive f
 
 Treat the visible session list as a direct selector rather than a fixed-only queue: choosing Focus Dive, Short Break, Long Break, or Custom Session replaces the current countdown with that session in an idle state. Keep the countdown in a fixed-size central frame across session and status changes. Limit circular decoration to the timer track and progress ring; remove compass-like guide arcs, concentric rings, and cardinal ticks. Keep the underwater ambience free of fish so background motion remains quiet and non-distracting.
 
+## TD-020 — Use a nonactivating floating panel for active-session visibility
+
+**Status:** Accepted
+
+Present the compact timer in a separate AppKit `NSPanel` above normal application windows when a session is running and the main app is minimized or inactive. Make the panel nonactivating so browser work is not interrupted, allow it to join all Spaces and full-screen applications, and hide it immediately when the timer pauses, stops, or completes. Snap dragging to the nearest screen corner and store that corner locally. Keep an explicit pin option for users who want the panel visible while the main app is active, but never show it without a running session.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

@@ -147,10 +147,11 @@ struct FocusDiveDashboard: View {
                 }
                 .help("Session settings")
 
-                Button { model.isCompact.toggle() } label: {
-                    Image(systemName: "rectangle.split.2x1")
+                Button { model.keepFloatingTimerVisible.toggle() } label: {
+                    Image(systemName: model.keepFloatingTimerVisible ? "pin.fill" : "pin")
                 }
-                .help("Toggle compact timer")
+                .help("Keep floating timer visible during an active session")
+                .accessibilityLabel(model.keepFloatingTimerVisible ? "Stop pinning floating timer" : "Pin floating timer")
             }
             .buttonStyle(.plain)
             .font(.system(size: 17, weight: .light))
@@ -233,7 +234,7 @@ struct TimerConsole: View {
                         Text(statusText)
                             .font(.system(size: 9, weight: .semibold, design: .rounded))
                             .tracking(2.4)
-                            .foregroundStyle(model.timerState == .paused ? Color.diveAmber : accentColor.opacity(0.82))
+                            .foregroundStyle(Color.diveAmber)
                         Text(formattedTime)
                             .font(.system(size: side * 0.2, weight: .ultraLight, design: .default))
                             .monospacedDigit()
@@ -344,7 +345,7 @@ struct DepthGauge: View {
                         .monospacedDigit()
                     Text(statusText)
                         .font(.system(size: 10, weight: .medium, design: .default))
-                        .foregroundStyle(Color.diveAqua)
+                        .foregroundStyle(Color.diveAmber)
                 }
                 .offset(x: 74, y: 18)
 
