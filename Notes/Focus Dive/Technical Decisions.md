@@ -98,7 +98,7 @@ Copy supplied visual assets into the repository and package them inside the appl
 
 **Status:** Accepted
 
-Drive the surface-light breathing and drifting particles from the dimmed procedural-water layer while rendering the fish school in its own ambient layer so silhouettes remain legible over the photograph. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep fish dark and slow, but give them enough scale and restrained cyan edge light to remain recognizable without competing with the countdown or controls.
+Drive the surface-light breathing and drifting particles from the dimmed procedural-water layer. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep ambience sparse and subordinate to the countdown.
 
 ## TD-017 — Hold the completed timer at the surface
 
@@ -111,6 +111,12 @@ A completed session remains in the `.completed` state at `00:00` and zero metres
 **Status:** Accepted
 
 Keep integer remaining seconds as the timer’s authoritative state and derive fractional presentation progress from the existing date anchor. The UI refresh ticker uses the fractional value for smooth ring, depth, and environmental motion without changing completion boundaries, persistence, or countdown labels. Paused and completed timers return stable presentation values.
+
+## TD-019 — Keep session selection manual and the timer spatially stable
+
+**Status:** Accepted
+
+Treat the visible session list as a direct selector rather than a fixed-only queue: choosing Focus Dive, Short Break, Long Break, or Custom Session replaces the current countdown with that session in an idle state. Keep the countdown in a fixed-size central frame across session and status changes. Limit circular decoration to the timer track and progress ring; remove compass-like guide arcs, concentric rings, and cardinal ticks. Keep the underwater ambience free of fish so background motion remains quiet and non-distracting.
 
 ## Open decisions
 

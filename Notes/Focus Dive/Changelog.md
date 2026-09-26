@@ -2,6 +2,21 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Manual session selection and quieter timer console
+
+### Changed
+
+- Removed the animated fish layer and its unused visual token.
+- Made Focus Dive, Short Break, Long Break, and Custom Session directly selectable from the session panel.
+- Added a persisted, editable custom-session duration with backward-compatible decoding for older local snapshots.
+- Fixed the central timer to a stable 560-point square so session labels and state changes do not move it.
+- Removed the decorative compass arc, concentric guide rings, and cardinal tick marks while preserving the countdown progress ring.
+- Added restrained session-specific accent transitions without moving the timer.
+
+### Verified
+
+- Added core coverage for custom-session duration, selection, completion, and return to Focus Dive.
+
 ## 2026-09-26 — Smooth ascent and paused-state animation
 
 ### Added

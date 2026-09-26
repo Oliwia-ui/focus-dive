@@ -46,8 +46,8 @@ struct SessionQueueCard: View {
         [
             (.focus, model.settings.focusMinutes),
             (.shortBreak, model.settings.shortBreakMinutes),
-            (.focus, model.settings.focusMinutes),
-            (.longBreak, model.settings.longBreakMinutes)
+            (.longBreak, model.settings.longBreakMinutes),
+            (.custom, model.settings.customMinutes)
         ]
     }
 
@@ -61,41 +61,52 @@ struct SessionQueueCard: View {
             }
 
             ForEach(Array(queue.enumerated()), id: \.offset) { index, item in
-                Button {
-                    editing.index = index
-                } label: {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            Circle().stroke(Color.diveAqua.opacity(0.75), lineWidth: 1.5)
-                            if index == activeIndex {
-                                Circle().fill(Color.diveCyan.opacity(0.28)).padding(5)
-                                Circle().stroke(Color.diveCyan, lineWidth: 2).padding(5)
+                HStack(spacing: 8) {
+                    Button {
+                        model.selectSession(item.0)
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle().stroke(Color.diveAqua.opacity(0.75), lineWidth: 1.5)
+                                if index == activeIndex {
+                                    Circle().fill(item.0.accentColor.opacity(0.28)).padding(5)
+                                    Circle().stroke(item.0.accentColor, lineWidth: 2).padding(5)
+                                }
                             }
-                        }
-                        .frame(width: 29, height: 29)
-                        .shadow(color: index == activeIndex ? .diveCyan : .clear, radius: 9)
+                            .frame(width: 29, height: 29)
+                            .shadow(color: index == activeIndex ? item.0.accentColor : .clear, radius: 9)
 
-                        Text(item.0.title.replacingOccurrences(of: " Surface", with: ""))
-                            .font(.system(size: 14, weight: index == activeIndex ? .medium : .regular, design: .rounded))
-                        Spacer()
-                        Text("\(item.1) min")
-                            .font(.system(size: 13, weight: .regular, design: .rounded))
-                            .foregroundStyle(Color.diveAqua)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Color.diveAqua.opacity(0.48))
+                            Text(item.0.title.replacingOccurrences(of: " Surface", with: ""))
+                                .font(.system(size: 14, weight: index == activeIndex ? .medium : .regular, design: .rounded))
+                            Spacer()
+                            Text("\(item.1) min")
+                                .font(.system(size: 13, weight: .regular, design: .rounded))
+                                .foregroundStyle(Color.diveAqua)
+                        }
+                        .contentShape(Rectangle())
+                        .padding(.vertical, 5)
+                        .padding(.leading, 8)
+                        .background(index == activeIndex ? item.0.accentColor.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 10))
                     }
-                    .contentShape(Rectangle())
-                    .padding(.vertical, 5)
-                    .padding(.horizontal, 8)
-                    .background(index == activeIndex ? Color.diveCyan.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 10))
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("session-row-\(index)")
+                    .accessibilityLabel("Select \(item.0.title), \(item.1) minutes")
+
+                    Button {
+                        editing.index = index
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 11, weight: .medium))
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.diveAqua.opacity(0.68))
+                    .accessibilityLabel("Edit \(item.0.title) duration")
+                    .popover(isPresented: editorBinding(for: index), arrowEdge: .trailing) {
+                        SessionDurationEditor(model: model, kind: item.0)
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("session-row-\(index)")
-                .accessibilityHint("Change this session duration")
-                .popover(isPresented: editorBinding(for: index), arrowEdge: .trailing) {
-                    SessionDurationEditor(model: model, kind: item.0)
-                }
+                .animation(.easeInOut(duration: 0.35), value: activeIndex)
             }
         }
         .padding(22)
@@ -103,7 +114,7 @@ struct SessionQueueCard: View {
     }
 
     private var activeIndex: Int {
-        model.coordinator.queuePosition
+        queue.firstIndex(where: { $0.0 == model.currentKind }) ?? 0
     }
 
     private func editorBinding(for index: Int) -> Binding<Bool> {
@@ -181,6 +192,7 @@ private struct SessionDurationEditor: View {
         case .focus: 1...120
         case .shortBreak: 1...30
         case .longBreak: 1...60
+        case .custom: 1...180
         }
     }
 
@@ -189,6 +201,7 @@ private struct SessionDurationEditor: View {
         case .focus: [15, 25, 45, 60]
         case .shortBreak: [3, 5, 10, 15]
         case .longBreak: [10, 15, 20, 30]
+        case .custom: [20, 30, 45, 90]
         }
     }
 }

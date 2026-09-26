@@ -7,7 +7,12 @@ struct FocusDiveDashboard: View {
 
     var body: some View {
         ZStack {
-            OceanBackground(progress: model.presentationProgress, reduceMotion: reduceMotion, isActive: model.isRunning)
+            OceanBackground(
+                progress: model.presentationProgress,
+                reduceMotion: reduceMotion,
+                isActive: model.isRunning,
+                accent: model.currentKind.accentColor
+            )
 
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.diveAbyss.opacity(0.08))
@@ -35,7 +40,7 @@ struct FocusDiveDashboard: View {
 
                     VStack(spacing: 8) {
                         TimerConsole(model: model, reduceMotion: reduceMotion)
-                            .frame(maxWidth: 580, maxHeight: 580)
+                            .frame(width: 560, height: 560)
                         Text("DEEPER WORK  •  BRIGHTER DAYS")
                             .font(.system(size: 10, weight: .medium, design: .default))
                             .tracking(4)
@@ -75,6 +80,7 @@ struct FocusDiveDashboard: View {
         .foregroundStyle(Color.diveText)
         .frame(minWidth: 1_180, minHeight: 760)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.7), value: model.completionNotice != nil)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: model.currentKind)
         .onAppear { model.requestNotificationPermission() }
     }
 
@@ -205,38 +211,18 @@ struct TimerConsole: View {
                 Circle()
                     .trim(from: 0, to: max(0.002, min(1, model.presentationProgress)))
                     .stroke(
-                        AngularGradient(colors: [.white, .diveCyan, .diveCyan.opacity(0.42)], center: .center),
+                        AngularGradient(colors: [.white, accentColor, accentColor.opacity(0.42)], center: .center),
                         style: StrokeStyle(lineWidth: 13, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .padding(31)
                     .opacity(model.timerState == .paused ? 0.58 : 1)
                     .shadow(
-                        color: .diveCyan.opacity(model.timerState == .paused ? 0.3 : minutePulse ? 0.95 : 0.72),
+                        color: accentColor.opacity(model.timerState == .paused ? 0.3 : minutePulse ? 0.95 : 0.72),
                         radius: model.timerState == .completed ? 22 : minutePulse ? 18 : 12
                     )
                     .animation(reduceMotion ? nil : .linear(duration: 0.28), value: model.presentationProgress)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.5), value: minutePulse)
-
-                Circle()
-                    .trim(from: 0.54, to: 0.72)
-                    .stroke(
-                        LinearGradient(colors: [.diveCyan.opacity(0.95), .diveCobalt.opacity(0.25)], startPoint: .top, endPoint: .bottom),
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .padding(31)
-                    .shadow(color: .diveCyan.opacity(0.45), radius: 9)
-
-                Circle()
-                    .stroke(Color.diveCyan.opacity(0.66), lineWidth: 0.9)
-                    .padding(18)
-                Circle()
-                    .stroke(Color.diveAqua.opacity(0.28), lineWidth: 0.8)
-                    .padding(44)
-                Circle()
-                    .stroke(Color.diveCobalt.opacity(0.34), lineWidth: 2)
-                    .padding(53)
 
                 VStack(spacing: 20) {
                     VStack(spacing: 10) {
@@ -247,7 +233,7 @@ struct TimerConsole: View {
                         Text(statusText)
                             .font(.system(size: 9, weight: .semibold, design: .rounded))
                             .tracking(2.4)
-                            .foregroundStyle(model.timerState == .paused ? Color.diveAmber : Color.diveCyan.opacity(0.82))
+                            .foregroundStyle(model.timerState == .paused ? Color.diveAmber : accentColor.opacity(0.82))
                         Text(formattedTime)
                             .font(.system(size: side * 0.2, weight: .ultraLight, design: .default))
                             .monospacedDigit()
@@ -294,24 +280,12 @@ struct TimerConsole: View {
                     .accessibilityLabel(primaryControlLabel)
                 }
 
-                HStack(spacing: side * 0.48) {
-                    tickMark
-                    tickMark
-                }
-                VStack(spacing: side * 0.48) {
-                    tickMark.rotationEffect(.degrees(90))
-                    tickMark.rotationEffect(.degrees(90))
-                }
             }
             .frame(width: side, height: side)
             .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.65), value: model.isRunning)
         }
         .aspectRatio(1, contentMode: .fit)
-    }
-
-    private var tickMark: some View {
-        Rectangle().fill(Color.diveAqua.opacity(0.7)).frame(width: 14, height: 1)
     }
 
     private var formattedTime: String {
@@ -322,6 +296,8 @@ struct TimerConsole: View {
         model.isRunning && model.remainingSeconds > 0 && model.remainingSeconds < model.timer.durationSeconds
             && model.remainingSeconds.isMultiple(of: 60)
     }
+
+    private var accentColor: Color { model.currentKind.accentColor }
 
     private var statusText: String {
         switch model.timerState {

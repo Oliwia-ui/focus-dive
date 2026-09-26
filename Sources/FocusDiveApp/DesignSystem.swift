@@ -1,3 +1,4 @@
+import FocusDiveCore
 import SwiftUI
 
 extension Color {
@@ -9,7 +10,17 @@ extension Color {
     static let diveText = Color(red: 0.89, green: 0.97, blue: 0.99)
     static let diveMuted = Color(red: 0.48, green: 0.68, blue: 0.78)
     static let diveAmber = Color(red: 0.96, green: 0.73, blue: 0.32)
-    static let diveFish = Color(red: 0.01, green: 0.08, blue: 0.12)
+}
+
+extension SessionKind {
+    var accentColor: Color {
+        switch self {
+        case .focus: .diveCyan
+        case .shortBreak: .diveAqua
+        case .longBreak: .diveCobalt
+        case .custom: .diveAmber
+        }
+    }
 }
 
 struct DivePanelModifier: ViewModifier {

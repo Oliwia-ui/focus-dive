@@ -12,11 +12,49 @@ import Testing
 }
 
 @Test func durationSettingsConvertMinutesToSeconds() throws {
-    let settings = try DurationSettings(focusMinutes: 30, shortBreakMinutes: 7, longBreakMinutes: 20)
+    let settings = try DurationSettings(focusMinutes: 30, shortBreakMinutes: 7, longBreakMinutes: 20, customMinutes: 42)
 
     #expect(settings.duration(for: .focus) == 1_800)
     #expect(settings.duration(for: .shortBreak) == 420)
     #expect(settings.duration(for: .longBreak) == 1_200)
+    #expect(settings.duration(for: .custom) == 2_520)
+}
+
+@Test func selectingCustomSessionUsesItsConfiguredDurationAndReturnsToFocus() throws {
+    let settings = try DurationSettings(
+        focusMinutes: 25,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 15,
+        customMinutes: 42
+    )
+    let coordinator = SessionCoordinator(settings: settings)
+
+    coordinator.selectSession(.custom)
+
+    #expect(coordinator.currentKind == .custom)
+    #expect(coordinator.timer.durationSeconds == 2_520)
+    #expect(coordinator.timer.state == .idle)
+
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 2_520))
+    coordinator.prepareNextSession()
+
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 0)
+}
+
+@Test func selectingAnySessionDirectlyReplacesARunningTimerWithAnIdleTimer() throws {
+    let settings = try DurationSettings(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 18)
+    let coordinator = SessionCoordinator(settings: settings)
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 60))
+
+    coordinator.selectSession(.longBreak)
+
+    #expect(coordinator.currentKind == .longBreak)
+    #expect(coordinator.queuePosition == 3)
+    #expect(coordinator.timer.state == .idle)
+    #expect(coordinator.timer.remainingSeconds == 1_080)
 }
 
 @Test func sessionCompletionCreatesDiveLogEntry() throws {

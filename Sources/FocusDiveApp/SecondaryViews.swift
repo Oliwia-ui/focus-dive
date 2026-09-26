@@ -25,6 +25,11 @@ struct SettingsView: View {
                     value: integerBinding(\.longBreakMinutes, range: 1...60),
                     in: 1...60
                 )
+                Stepper(
+                    "Custom session: \(model.settings.customMinutes) min",
+                    value: integerBinding(\.customMinutes, range: 1...180),
+                    in: 1...180
+                )
                 Section("Sound architecture") {
                     Toggle("Underwater ambience", isOn: .constant(false))
                         .disabled(true)

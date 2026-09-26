@@ -80,6 +80,21 @@ public final class SessionCoordinator {
         advance(after: currentKind)
     }
 
+    public func selectSession(_ kind: SessionKind) {
+        currentKind = kind
+        switch kind {
+        case .focus:
+            queuePosition = 0
+        case .shortBreak:
+            queuePosition = 1
+        case .longBreak:
+            queuePosition = 3
+        case .custom:
+            queuePosition = 0
+        }
+        timer = DiveTimer(duration: settings.duration(for: kind))
+    }
+
     public func updateSettings(_ settings: DurationSettings) {
         let shouldRefreshIdleTimer = timer.state == .idle
         self.settings = settings
@@ -89,6 +104,12 @@ public final class SessionCoordinator {
     }
 
     private func advance(after kind: SessionKind) {
+        if kind == .custom {
+            queuePosition = 0
+            currentKind = .focus
+            timer = DiveTimer(duration: settings.duration(for: .focus))
+            return
+        }
         queuePosition = (queuePosition + 1) % 4
         currentKind = [.focus, .shortBreak, .focus, .longBreak][queuePosition]
         timer = DiveTimer(duration: settings.duration(for: currentKind))

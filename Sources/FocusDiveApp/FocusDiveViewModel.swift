@@ -143,7 +143,15 @@ final class FocusDiveViewModel: ObservableObject {
         case .focus: settings.focusMinutes
         case .shortBreak: settings.shortBreakMinutes
         case .longBreak: settings.longBreakMinutes
+        case .custom: settings.customMinutes
         }
+    }
+
+    func selectSession(_ kind: SessionKind) {
+        ticker?.invalidate()
+        completionNotice = nil
+        coordinator.selectSession(kind)
+        objectWillChange.send()
     }
 
     func updateDuration(for kind: SessionKind, minutes: Int) {
@@ -155,6 +163,8 @@ final class FocusDiveViewModel: ObservableObject {
             updated.shortBreakMinutes = min(max(minutes, 1), 30)
         case .longBreak:
             updated.longBreakMinutes = min(max(minutes, 1), 60)
+        case .custom:
+            updated.customMinutes = min(max(minutes, 1), 180)
         }
         updateSettings(updated)
     }

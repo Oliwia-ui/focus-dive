@@ -5,6 +5,7 @@ struct OceanBackground: View {
     let progress: Double
     let reduceMotion: Bool
     let isActive: Bool
+    let accent: Color
     @StateObject private var motion = AmbientMotionState()
 
     var body: some View {
@@ -21,6 +22,13 @@ struct OceanBackground: View {
                         .brightness(-0.22 + progress * 0.18)
                 }
             }
+
+            RadialGradient(
+                colors: [accent.opacity(0.1), .clear],
+                center: .top,
+                startRadius: 0,
+                endRadius: 720
+            )
 
             TimelineView(.animation(minimumInterval: reduceMotion || !isActive ? 10 : 1.0 / 24.0)) { timeline in
             Canvas { context, size in
@@ -184,8 +192,6 @@ struct OceanBackground: View {
                 endPoint: .bottom
             )
 
-            AmbientFishSchool(motion: motion, reduceMotion: reduceMotion, isActive: isActive)
-
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.46),
@@ -216,64 +222,6 @@ struct OceanBackground: View {
         }
         return NSImage(contentsOf: url)
     }()
-}
-
-struct AmbientFishSchool: View {
-    @ObservedObject var motion: AmbientMotionState
-    let reduceMotion: Bool
-    let isActive: Bool
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion || !isActive ? 10 : 1.0 / 24.0)) { timeline in
-            Canvas { context, size in
-                let phase = reduceMotion ? 0 : motion.phase(at: timeline.date)
-
-                for index in 0..<7 {
-                    let fishWidth = 44 + Double(index % 3) * 14
-                    let fishHeight = fishWidth * 0.34
-                    let cycleWidth = size.width + fishWidth * 2.5
-                    let speed = 8 + Double(index % 4) * 2.6
-                    let seed = Double((index * 37) % 97) / 97
-                    let traveled = (phase * speed + seed * cycleWidth)
-                        .truncatingRemainder(dividingBy: cycleWidth)
-                    let x = size.width + fishWidth - traveled
-                    let baseY = size.height * (0.16 + Double((index * 17) % 38) / 100)
-                    let y = baseY + sin(phase * 0.28 + Double(index) * 1.4) * 9
-                    let bodyRect = CGRect(
-                        x: x - fishWidth / 2,
-                        y: y - fishHeight / 2,
-                        width: fishWidth,
-                        height: fishHeight
-                    )
-                    let body = Path(ellipseIn: bodyRect)
-
-                    var tail = Path()
-                    tail.move(to: CGPoint(x: bodyRect.maxX - 3, y: y))
-                    tail.addLine(to: CGPoint(x: bodyRect.maxX + fishWidth * 0.34, y: y - fishHeight * 0.66))
-                    tail.addLine(to: CGPoint(x: bodyRect.maxX + fishWidth * 0.34, y: y + fishHeight * 0.66))
-                    tail.closeSubpath()
-
-                    var fin = Path()
-                    fin.move(to: CGPoint(x: x - fishWidth * 0.06, y: bodyRect.minY + 2))
-                    fin.addLine(to: CGPoint(x: x + fishWidth * 0.11, y: bodyRect.minY - fishHeight * 0.42))
-                    fin.addLine(to: CGPoint(x: x + fishWidth * 0.2, y: bodyRect.minY + 3))
-                    fin.closeSubpath()
-
-                    context.fill(body, with: .color(.diveFish.opacity(0.84)))
-                    context.fill(tail, with: .color(.diveFish.opacity(0.78)))
-                    context.fill(fin, with: .color(.diveFish.opacity(0.72)))
-                    context.stroke(body, with: .color(.diveAqua.opacity(0.24)), lineWidth: 2.2)
-                    context.stroke(body, with: .color(.diveCyan.opacity(0.58)), lineWidth: 0.9)
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: bodyRect.minX + fishWidth * 0.2, y: y - 1.8, width: 3.6, height: 3.6)),
-                        with: .color(.diveCyan.opacity(0.9))
-                    )
-                }
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
 }
 
 final class AmbientMotionState: ObservableObject {
