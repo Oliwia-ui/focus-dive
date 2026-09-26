@@ -7,7 +7,7 @@ struct FocusDiveDashboard: View {
 
     var body: some View {
         ZStack {
-            OceanBackground(progress: model.progress, reduceMotion: reduceMotion, isActive: model.isRunning)
+            OceanBackground(progress: model.presentationProgress, reduceMotion: reduceMotion, isActive: model.isRunning)
 
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.diveAbyss.opacity(0.08))
@@ -25,7 +25,12 @@ struct FocusDiveDashboard: View {
                     .padding(.top, 42)
 
                 HStack(alignment: .center, spacing: 20) {
-                    DepthGauge(depth: model.depth, isRunning: model.isRunning)
+                    DepthGauge(
+                        depth: model.presentationDepth,
+                        state: model.timerState,
+                        kind: model.currentKind,
+                        reduceMotion: reduceMotion
+                    )
                         .frame(width: 280)
 
                     VStack(spacing: 8) {
@@ -69,6 +74,7 @@ struct FocusDiveDashboard: View {
         }
         .foregroundStyle(Color.diveText)
         .frame(minWidth: 1_180, minHeight: 760)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.7), value: model.completionNotice != nil)
         .onAppear { model.requestNotificationPermission() }
     }
 
@@ -97,7 +103,7 @@ struct FocusDiveDashboard: View {
         .padding(.vertical, 28)
         .frame(width: 360)
         .divePanel()
-        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        .transition(.opacity.combined(with: .offset(y: 14)))
     }
 
     private var header: some View {
@@ -183,8 +189,11 @@ struct TimerConsole: View {
                     )
                     .padding(53)
 
-                if model.isRunning {
-                    BubbleField(reduceMotion: reduceMotion)
+                if model.isRunning || model.completionNotice != nil {
+                    BubbleField(
+                        reduceMotion: reduceMotion,
+                        isCompleting: model.completionNotice != nil
+                    )
                         .frame(width: side, height: side)
                         .transition(.opacity)
                 }
@@ -194,15 +203,20 @@ struct TimerConsole: View {
                     .padding(31)
 
                 Circle()
-                    .trim(from: 0, to: min(1, 0.19 + model.progress * 0.81))
+                    .trim(from: 0, to: max(0.002, min(1, model.presentationProgress)))
                     .stroke(
                         AngularGradient(colors: [.white, .diveCyan, .diveCyan.opacity(0.42)], center: .center),
                         style: StrokeStyle(lineWidth: 13, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .padding(31)
-                    .shadow(color: .diveCyan.opacity(0.72), radius: 12)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.5), value: model.progress)
+                    .opacity(model.timerState == .paused ? 0.58 : 1)
+                    .shadow(
+                        color: .diveCyan.opacity(model.timerState == .paused ? 0.3 : minutePulse ? 0.95 : 0.72),
+                        radius: model.timerState == .completed ? 22 : minutePulse ? 18 : 12
+                    )
+                    .animation(reduceMotion ? nil : .linear(duration: 0.28), value: model.presentationProgress)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.5), value: minutePulse)
 
                 Circle()
                     .trim(from: 0.54, to: 0.72)
@@ -230,10 +244,14 @@ struct TimerConsole: View {
                             .font(.system(size: 10, weight: .medium, design: .default))
                             .tracking(3.8)
                             .foregroundStyle(Color.diveAqua)
+                        Text(statusText)
+                            .font(.system(size: 9, weight: .semibold, design: .rounded))
+                            .tracking(2.4)
+                            .foregroundStyle(model.timerState == .paused ? Color.diveAmber : Color.diveCyan.opacity(0.82))
                         Text(formattedTime)
                             .font(.system(size: side * 0.2, weight: .ultraLight, design: .default))
                             .monospacedDigit()
-                            .contentTransition(.numericText())
+                            .contentTransition(reduceMotion ? .identity : .numericText())
                             .accessibilityIdentifier("timer-display")
                             .accessibilityLabel("Time remaining \(formattedTime)")
                     }
@@ -255,17 +273,25 @@ struct TimerConsole: View {
                     }
 
                     Button(action: model.toggleTimer) {
-                        Image(systemName: model.isRunning ? "pause.fill" : "play.fill")
-                            .font(.system(size: 23, weight: .semibold))
-                            .frame(width: 70, height: 70)
-                            .background(Color(red: 0.015, green: 0.13, blue: 0.21).opacity(0.82), in: Circle())
-                            .overlay(Circle().stroke(Color.diveCyan.opacity(0.55)))
-                            .shadow(color: .diveCyan.opacity(0.28), radius: 18)
+                        ZStack {
+                            if model.timerState == .paused {
+                                Circle()
+                                    .stroke(Color.diveCyan.opacity(0.24), lineWidth: 1)
+                                    .frame(width: 86, height: 86)
+                                    .shadow(color: .diveCyan.opacity(0.35), radius: 10)
+                            }
+                            Image(systemName: primaryControlSymbol)
+                                .font(.system(size: 23, weight: .semibold))
+                                .frame(width: 70, height: 70)
+                                .background(Color(red: 0.015, green: 0.13, blue: 0.21).opacity(0.82), in: Circle())
+                                .overlay(Circle().stroke(Color.diveCyan.opacity(model.timerState == .paused ? 0.82 : 0.55)))
+                                .shadow(color: .diveCyan.opacity(model.timerState == .paused ? 0.5 : 0.28), radius: 18)
+                        }
                     }
                     .buttonStyle(.plain)
                     .keyboardShortcut(.space, modifiers: [])
                     .accessibilityIdentifier("primary-timer-control")
-                    .accessibilityLabel(model.isRunning ? "Pause focus timer" : "Start focus timer")
+                    .accessibilityLabel(primaryControlLabel)
                 }
 
                 HStack(spacing: side * 0.48) {
@@ -279,6 +305,7 @@ struct TimerConsole: View {
             }
             .frame(width: side, height: side)
             .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.65), value: model.isRunning)
         }
         .aspectRatio(1, contentMode: .fit)
     }
@@ -290,11 +317,44 @@ struct TimerConsole: View {
     private var formattedTime: String {
         String(format: "%02d:%02d", model.remainingSeconds / 60, model.remainingSeconds % 60)
     }
+
+    private var minutePulse: Bool {
+        model.isRunning && model.remainingSeconds > 0 && model.remainingSeconds < model.timer.durationSeconds
+            && model.remainingSeconds.isMultiple(of: 60)
+    }
+
+    private var statusText: String {
+        switch model.timerState {
+        case .idle: "READY"
+        case .running: "IN PROGRESS"
+        case .paused: "PAUSED"
+        case .completed: "SURFACED"
+        }
+    }
+
+    private var primaryControlSymbol: String {
+        switch model.timerState {
+        case .running: "pause.fill"
+        case .completed: "arrow.right"
+        case .idle, .paused: "play.fill"
+        }
+    }
+
+    private var primaryControlLabel: String {
+        switch model.timerState {
+        case .running: "Pause \(model.currentKind.title)"
+        case .paused: "Resume \(model.currentKind.title)"
+        case .completed: "Start next session"
+        case .idle: "Start \(model.currentKind.title)"
+        }
+    }
 }
 
 struct DepthGauge: View {
     let depth: Double
-    let isRunning: Bool
+    let state: TimerState
+    let kind: SessionKind
+    let reduceMotion: Bool
 
     var body: some View {
         GeometryReader { proxy in
@@ -306,7 +366,7 @@ struct DepthGauge: View {
                     Text("\(Int(depth.rounded())) m")
                         .font(.system(size: 43, weight: .light, design: .default))
                         .monospacedDigit()
-                    Text(isRunning ? "A S C E N D I N G" : "D E S C E N D I N G")
+                    Text(statusText)
                         .font(.system(size: 10, weight: .medium, design: .default))
                         .foregroundStyle(Color.diveAqua)
                 }
@@ -352,9 +412,24 @@ struct DepthGauge: View {
                     .shadow(color: .diveCyan, radius: 13)
                     .offset(x: 41, y: markerY - 9)
             }
+            .animation(reduceMotion ? nil : .linear(duration: 0.28), value: markerY)
             .frame(width: proxy.size.width, height: gaugeHeight, alignment: .topLeading)
         }
         .frame(height: 520)
         .accessibilityLabel("Current depth \(Int(depth.rounded())) meters")
+        .accessibilityValue(statusText.replacingOccurrences(of: " ", with: ""))
+    }
+
+    private var statusText: String {
+        switch state {
+        case .idle:
+            "R E A D Y"
+        case .running:
+            kind == .focus ? "A S C E N D I N G" : "R E S T I N G"
+        case .paused:
+            "P A U S E D"
+        case .completed:
+            "S U R F A C E D"
+        }
     }
 }

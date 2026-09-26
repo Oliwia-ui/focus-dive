@@ -16,9 +16,9 @@ struct OceanBackground: View {
                         .scaledToFill()
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
-                        .saturation(0.72)
-                        .contrast(1.08)
-                        .brightness(-0.18 + progress * 0.07)
+                        .saturation(0.66 + progress * 0.18)
+                        .contrast(1.1 - progress * 0.08)
+                        .brightness(-0.22 + progress * 0.18)
                 }
             }
 
@@ -131,7 +131,10 @@ struct OceanBackground: View {
                 context.fill(
                     leftSpire,
                     with: .linearGradient(
-                        Gradient(colors: [Color.diveCobalt.opacity(0.18), .black.opacity(0.84)]),
+                        Gradient(colors: [
+                            Color.diveCobalt.opacity(0.18 - progress * 0.08),
+                            .black.opacity(0.84 - progress * 0.28)
+                        ]),
                         startPoint: CGPoint(x: 0, y: size.height * 0.3),
                         endPoint: CGPoint(x: 0, y: size.height)
                     )
@@ -159,8 +162,8 @@ struct OceanBackground: View {
                                     red: 0.02,
                                     green: 0.15 - Double(layer) * 0.025,
                                     blue: 0.22 - Double(layer) * 0.025
-                                ).opacity(0.9),
-                                .black.opacity(0.98)
+                                ).opacity(0.9 - progress * 0.38),
+                                .black.opacity(0.98 - progress * 0.3)
                             ]),
                             startPoint: CGPoint(x: 0, y: size.height * 0.72),
                             endPoint: CGPoint(x: 0, y: size.height)
@@ -175,7 +178,7 @@ struct OceanBackground: View {
                 colors: [
                     Color.diveAbyss.opacity(0.38),
                     Color.diveNavy.opacity(0.12 + (1 - progress) * 0.18),
-                    Color.diveAbyss.opacity(0.46)
+                    Color.diveAbyss.opacity(0.46 - progress * 0.22)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -296,32 +299,44 @@ final class AmbientMotionState: ObservableObject {
 
 struct BubbleField: View {
     let reduceMotion: Bool
-    private let bubbles: [(Double, Double, Double)] = [
-        (0.08, 0.64, 8), (0.14, 0.31, 5), (0.2, 0.76, 11), (0.26, 0.18, 6),
-        (0.78, 0.2, 9), (0.83, 0.64, 13), (0.89, 0.38, 6), (0.94, 0.72, 8),
-        (0.71, 0.81, 4), (0.12, 0.88, 4), (0.86, 0.49, 4),
-        (0.04, 0.48, 5), (0.91, 0.84, 11), (0.76, 0.34, 5), (0.22, 0.9, 6)
+    let isCompleting: Bool
+    private let bubbles: [(x: Double, y: Double, size: Double, cycle: Double, delay: Double)] = [
+        (0.12, 0.78, 7, 8.8, 0.04),
+        (0.2, 0.63, 11, 10.6, 0.42),
+        (0.29, 0.84, 5, 7.4, 0.73),
+        (0.72, 0.72, 8, 9.5, 0.18),
+        (0.8, 0.86, 12, 11.3, 0.58),
+        (0.88, 0.6, 6, 8.1, 0.86),
+        (0.64, 0.9, 4, 6.8, 0.31)
     ]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 30.0)) { timeline in
+        TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 24.0)) { timeline in
             GeometryReader { proxy in
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 ForEach(Array(bubbles.enumerated()), id: \.offset) { index, bubble in
-                    let drift = sin(time * 0.35 + Double(index)) * 12
-                    let rise = reduceMotion ? 0 : (time * (5 + Double(index % 3))).truncatingRemainder(dividingBy: proxy.size.height * 0.35)
+                    let localPhase = reduceMotion
+                        ? bubble.delay
+                        : ((time / bubble.cycle) + bubble.delay).truncatingRemainder(dividingBy: 1)
+                    let drift = sin(localPhase * .pi * 2 + Double(index)) * (8 + Double(index % 3) * 3)
+                    let rise = localPhase * proxy.size.height * (isCompleting ? 0.62 : 0.42)
+                    let scale = 0.72 + localPhase * 0.5
+                    let lifecycleOpacity = reduceMotion
+                        ? 0.26
+                        : max(0, sin(localPhase * .pi)) * (isCompleting ? 0.58 : 0.46)
                     Circle()
                         .fill(.white.opacity(0.035))
                         .overlay(Circle().stroke(Color.diveCyan.opacity(0.58), lineWidth: 0.8))
                         .overlay(alignment: .topLeading) {
                             Circle().fill(.white.opacity(0.8)).frame(width: 2.2, height: 2.2).padding(2)
                         }
-                        .frame(width: bubble.2, height: bubble.2)
+                        .frame(width: bubble.size, height: bubble.size)
+                        .scaleEffect(scale)
                         .position(
-                            x: proxy.size.width * bubble.0 + drift,
-                            y: proxy.size.height * bubble.1 - rise
+                            x: proxy.size.width * bubble.x + drift,
+                            y: proxy.size.height * bubble.y - rise
                         )
-                        .opacity(0.45 + 0.3 * sin(time * 0.5 + Double(index)))
+                        .opacity(lifecycleOpacity)
                 }
             }
         }

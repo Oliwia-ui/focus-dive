@@ -64,6 +64,8 @@ final class FocusDiveViewModel: ObservableObject {
     var timerState: TimerState { timer.state }
     var depth: Double { timer.depthMeters }
     var progress: Double { timer.progress }
+    var presentationDepth: Double { timer.continuousDepthMeters() }
+    var presentationProgress: Double { timer.continuousProgress() }
     var completedToday: Int {
         history.filter { Calendar.current.isDateInToday($0.completedAt) }.count
     }

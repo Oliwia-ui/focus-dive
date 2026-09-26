@@ -2,6 +2,25 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Smooth ascent and paused-state animation
+
+### Added
+
+- Added continuous subsecond presentation progress so the timer ring, depth marker, and environmental ascent move smoothly while authoritative countdown values remain whole seconds.
+- Added explicit READY, IN PROGRESS, PAUSED, and SURFACED status text plus session-aware accessibility labels.
+- Added a restrained minute-boundary cyan ring pulse, dimmed paused ring, and a static pause ripple around the primary control.
+- Reduced the timer bubble field to seven varied bubbles with independent rise, drift, scale, and fade lifecycles.
+- Added a calm completion bubble state and a fade/upward completion-card transition.
+
+### Changed
+
+- Brightened and clarified the cavern photograph during ascent while reducing terrain, spire, and lower-vignette dominance near the surface.
+- Disabled numeric and completion movement when Reduce Motion is enabled while retaining clear static state changes.
+
+### Verified
+
+- Added continuous progress/depth tests covering fractional movement, pause freezing, and completed surface state.
+
 ## 2026-09-26 — Manual post-dive break choice
 
 ### Changed

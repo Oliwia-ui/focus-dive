@@ -62,3 +62,30 @@ import Testing
 
     #expect(timer.remainingSeconds == 9)
 }
+
+@Test func presentationProgressMovesContinuouslyBetweenWholeSecondTicks() {
+    var timer = DiveTimer(duration: 100)
+    timer.start(at: Date(timeIntervalSince1970: 0))
+
+    let progress = timer.continuousProgress(at: Date(timeIntervalSince1970: 0.25))
+    let depth = timer.continuousDepthMeters(at: Date(timeIntervalSince1970: 0.25))
+
+    #expect(abs(progress - 0.0025) < 0.000_001)
+    #expect(abs(depth - 59.85) < 0.000_001)
+    #expect(timer.remainingSeconds == 100)
+}
+
+@Test func presentationProgressFreezesWhilePausedAndCompletesAtTheSurface() {
+    var timer = DiveTimer(duration: 10)
+    timer.start(at: Date(timeIntervalSince1970: 0))
+    timer.pause(at: Date(timeIntervalSince1970: 2.5))
+
+    #expect(abs(timer.continuousProgress(at: Date(timeIntervalSince1970: 8)) - 0.2) < 0.000_001)
+    #expect(abs(timer.continuousDepthMeters(at: Date(timeIntervalSince1970: 8)) - 48) < 0.000_001)
+
+    timer.start(at: Date(timeIntervalSince1970: 10))
+    _ = timer.tick(at: Date(timeIntervalSince1970: 18))
+
+    #expect(timer.continuousProgress(at: Date(timeIntervalSince1970: 20)) == 1)
+    #expect(timer.continuousDepthMeters(at: Date(timeIntervalSince1970: 20)) == 0)
+}

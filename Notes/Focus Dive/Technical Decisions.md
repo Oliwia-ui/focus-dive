@@ -106,6 +106,12 @@ Drive the surface-light breathing and drifting particles from the dimmed procedu
 
 A completed session remains in the `.completed` state at `00:00` and zero metres until the user explicitly starts the next queued session. Completion logging happens immediately, but queue advancement is deferred. Automatic break settings from older snapshots remain decodable for compatibility but are ignored, and the UI no longer exposes automatic break startup.
 
+## TD-018 — Separate authoritative timer values from smooth presentation values
+
+**Status:** Accepted
+
+Keep integer remaining seconds as the timer’s authoritative state and derive fractional presentation progress from the existing date anchor. The UI refresh ticker uses the fractional value for smooth ring, depth, and environmental motion without changing completion boundaries, persistence, or countdown labels. Paused and completed timers return stable presentation values.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior
