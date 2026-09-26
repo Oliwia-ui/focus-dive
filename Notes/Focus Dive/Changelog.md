@@ -2,6 +2,20 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Photographic cavern background experiment
+
+### Changed
+
+- Bundled the supplied underwater cavern photograph as an application resource rather than depending on the temporary Hermes attachment path.
+- Composited the photograph beneath the existing procedural ocean effects with aspect-fill cropping, restrained saturation, and navy edge gradients for dashboard legibility.
+- Kept the procedural background as a fallback if the image resource cannot be loaded.
+- Updated both the XcodeGen project definition and local app-bundle script to package the resource.
+
+### Verified
+
+- All 19 core tests pass.
+- The release app bundle builds, contains the image resource, passes strict code-signature verification, and launches successfully.
+
 ## 2026-09-25 — Restore Xcode 16 compatibility
 
 ### Fixed

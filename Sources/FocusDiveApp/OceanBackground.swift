@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct OceanBackground: View {
@@ -5,7 +6,21 @@ struct OceanBackground: View {
     let reduceMotion: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 24.0)) { timeline in
+        ZStack {
+            if let image = Self.cavernImage {
+                GeometryReader { proxy in
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
+                        .saturation(0.72)
+                        .contrast(1.08)
+                        .brightness(-0.18 + progress * 0.07)
+                }
+            }
+
+            TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 24.0)) { timeline in
             Canvas { context, size in
                 let phase = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 let bright = max(0.12, progress)
@@ -150,9 +165,38 @@ struct OceanBackground: View {
                     )
                 }
             }
+            }
+            .opacity(Self.cavernImage == nil ? 1 : 0.34)
+
+            LinearGradient(
+                colors: [
+                    Color.diveAbyss.opacity(0.38),
+                    Color.diveNavy.opacity(0.12 + (1 - progress) * 0.18),
+                    Color.diveAbyss.opacity(0.46)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.46),
+                    .clear,
+                    Color.black.opacity(0.34)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
         .ignoresSafeArea()
     }
+
+    private static let cavernImage: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "DiveCavern", withExtension: "jpg") else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
+    }()
 }
 
 struct BubbleField: View {

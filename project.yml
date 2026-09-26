@@ -22,6 +22,8 @@ targets:
     platform: macOS
     sources:
       - Sources/FocusDiveApp
+      - path: Resources/DiveCavern.jpg
+        buildPhase: resources
     info:
       path: BuildSupport/FocusDive-Info.plist
       properties:

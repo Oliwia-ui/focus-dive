@@ -88,6 +88,12 @@ Keep the existing mission field as the human-readable activity description and a
 
 Use one Markdown file per date and event category inside the selected vault. Create the file once with a heading, then seek to the end and append immutable event blocks with unique event identifiers. This keeps logs readable in Obsidian, prevents silent replacement of older records, and avoids generating a large number of single-event files.
 
+## TD-015 — Bundle photographic backgrounds with a procedural fallback
+
+**Status:** Accepted for visual evaluation
+
+Copy supplied visual assets into the repository and package them inside the application bundle. Render the cavern photograph with aspect-fill cropping beneath the existing procedural water layer, then apply restrained saturation and navy edge gradients so controls remain legible. If the resource is absent or unreadable, retain the procedural ocean as a complete fallback instead of failing or showing an empty background.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior
