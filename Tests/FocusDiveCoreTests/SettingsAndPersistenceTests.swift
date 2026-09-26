@@ -26,13 +26,19 @@ import Testing
     coordinator.linkedTaskID = taskID
     coordinator.start(at: Date(timeIntervalSince1970: 100))
 
-    let entry = coordinator.completeCurrentSession(at: Date(timeIntervalSince1970: 1_600))
+    let result = coordinator.tick(at: Date(timeIntervalSince1970: 1_600))
+    let entry = result.logEntry
 
     #expect(entry?.taskName == "Finish project proposal")
     #expect(entry?.taskID == taskID)
     #expect(entry?.durationSeconds == 1_500)
     #expect(entry?.depthReachedMeters == 60)
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.timer.state == .completed)
+
+    coordinator.startNextSession(at: Date(timeIntervalSince1970: 1_601))
     #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.timer.state == .running)
 }
 
 @Test func jsonStoreRoundTripsSettingsAndHistory() throws {
@@ -58,7 +64,12 @@ import Testing
     let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
 
     #expect(coordinator.queuePosition == 0)
-    _ = coordinator.completeCurrentSession()
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 1_500))
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 0)
+
+    coordinator.prepareNextSession()
     #expect(coordinator.currentKind == .shortBreak)
     #expect(coordinator.queuePosition == 1)
 
@@ -66,9 +77,38 @@ import Testing
     #expect(coordinator.currentKind == .focus)
     #expect(coordinator.queuePosition == 2)
 
-    _ = coordinator.completeCurrentSession()
+    coordinator.start(at: Date(timeIntervalSince1970: 2_000))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 3_500))
+    coordinator.prepareNextSession()
     #expect(coordinator.currentKind == .longBreak)
     #expect(coordinator.queuePosition == 3)
+}
+
+@Test func completedTimerRemainsAtSurfaceUntilTheUserStartsTheNextSession() throws {
+    let settings = try DurationSettings(
+        focusMinutes: 1,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 15,
+        automaticallyStartBreaks: true
+    )
+    let coordinator = SessionCoordinator(settings: settings)
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+
+    let result = coordinator.tick(at: Date(timeIntervalSince1970: 60))
+
+    #expect(result.didComplete)
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 0)
+    #expect(coordinator.timer.state == .completed)
+    #expect(coordinator.timer.remainingSeconds == 0)
+    #expect(coordinator.timer.depthMeters == 0)
+
+    coordinator.startNextSession(at: Date(timeIntervalSince1970: 61))
+
+    #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.queuePosition == 1)
+    #expect(coordinator.timer.state == .running)
+    #expect(coordinator.timer.remainingSeconds == 300)
 }
 
 @Test func breakCompletionIsReportedWithoutCreatingLogEntry() throws {
@@ -81,6 +121,8 @@ import Testing
     #expect(result.didComplete)
     #expect(result.logEntry == nil)
     #expect(result.completedKind == .shortBreak)
+    #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.timer.state == .completed)
 }
 
 @Test func changingDurationsRefreshesAnIdleSession() throws {

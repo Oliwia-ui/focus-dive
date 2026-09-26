@@ -2,6 +2,19 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Manual post-dive break choice
+
+### Changed
+
+- Kept completed sessions at `00:00`, zero metres, and the bright surface state instead of immediately replacing them with the next queue timer.
+- Added explicit `Start Break` and `Start Focus Dive` completion actions while retaining a `Stay Surfaced` choice.
+- Removed the automatic-break control and no longer starts breaks automatically, including for older saved settings that enabled it.
+- Preserved the completed session kind and queue position until the user explicitly starts the next session.
+
+### Verified
+
+- Added regression coverage for completed focus and break sessions, manual queue advancement, and ignored automatic-break settings.
+
 ## 2026-09-26 — Make the fish school clearly visible
 
 ### Fixed

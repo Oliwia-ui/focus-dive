@@ -63,8 +63,17 @@ public final class SessionCoordinator {
         } else {
             entry = nil
         }
-        advance(after: completedKind)
         return entry
+    }
+
+    public func prepareNextSession() {
+        guard timer.state == .completed else { return }
+        advance(after: currentKind)
+    }
+
+    public func startNextSession(at date: Date = .now) {
+        prepareNextSession()
+        timer.start(at: date)
     }
 
     public func skip() {
@@ -83,8 +92,5 @@ public final class SessionCoordinator {
         queuePosition = (queuePosition + 1) % 4
         currentKind = [.focus, .shortBreak, .focus, .longBreak][queuePosition]
         timer = DiveTimer(duration: settings.duration(for: currentKind))
-        if settings.automaticallyStartBreaks && currentKind != .focus {
-            timer.start()
-        }
     }
 }

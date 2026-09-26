@@ -25,7 +25,6 @@ struct SettingsView: View {
                     value: integerBinding(\.longBreakMinutes, range: 1...60),
                     in: 1...60
                 )
-                Toggle("Automatically begin surface breaks", isOn: booleanBinding(\.automaticallyStartBreaks))
                 Section("Sound architecture") {
                     Toggle("Underwater ambience", isOn: .constant(false))
                         .disabled(true)
@@ -52,17 +51,6 @@ struct SettingsView: View {
             set: { value in
                 var settings = model.settings
                 settings[keyPath: keyPath] = min(max(value, range.lowerBound), range.upperBound)
-                model.updateSettings(settings)
-            }
-        )
-    }
-
-    private func booleanBinding(_ keyPath: WritableKeyPath<DurationSettings, Bool>) -> Binding<Bool> {
-        Binding(
-            get: { model.settings[keyPath: keyPath] },
-            set: { value in
-                var settings = model.settings
-                settings[keyPath: keyPath] = value
                 model.updateSettings(settings)
             }
         )

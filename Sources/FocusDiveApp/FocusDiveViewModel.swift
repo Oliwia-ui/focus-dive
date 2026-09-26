@@ -61,6 +61,7 @@ final class FocusDiveViewModel: ObservableObject {
     var currentKind: SessionKind { coordinator.currentKind }
     var remainingSeconds: Int { timer.remainingSeconds }
     var isRunning: Bool { timer.state == .running }
+    var timerState: TimerState { timer.state }
     var depth: Double { timer.depthMeters }
     var progress: Double { timer.progress }
     var completedToday: Int {
@@ -72,6 +73,10 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func toggleTimer() {
+        if timer.state == .completed {
+            startNextSession()
+            return
+        }
         if isRunning {
             coordinator.pause()
             ticker?.invalidate()
@@ -82,6 +87,18 @@ final class FocusDiveViewModel: ObservableObject {
             coordinator.start()
             startTicker()
         }
+        objectWillChange.send()
+    }
+
+    func startNextSession() {
+        completionNotice = nil
+        coordinator.startNextSession()
+        startTicker()
+        objectWillChange.send()
+    }
+
+    func staySurfaced() {
+        completionNotice = nil
         objectWillChange.send()
     }
 
@@ -253,12 +270,13 @@ final class FocusDiveViewModel: ObservableObject {
 struct CompletionNotice: Equatable {
     let kind: SessionKind
 
-    var title: String { kind == .focus ? "Surface reached" : "Break complete" }
+    var title: String { kind == .focus ? "Dive Complete" : "Break Complete" }
     var detail: String {
         kind == .focus
-            ? "A quiet focus dive is now in your logbook."
+            ? "You reached the surface. Start a break when you are ready."
             : "Your next focus dive is ready when you are."
     }
+    var actionTitle: String { kind == .focus ? "Start Break" : "Start Focus Dive" }
 }
 
 struct Discovery: Identifiable, Equatable {

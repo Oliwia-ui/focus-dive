@@ -84,17 +84,20 @@ struct FocusDiveDashboard: View {
             Text(notice.detail)
                 .font(.system(size: 13, design: .rounded))
                 .foregroundStyle(Color.diveAqua)
-            Button("Continue") { model.completionNotice = nil }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.diveCobalt)
+            HStack(spacing: 12) {
+                Button("Stay Surfaced") { model.staySurfaced() }
+                    .buttonStyle(.bordered)
+                Button(notice.actionTitle) { model.startNextSession() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.diveCobalt)
+                    .keyboardShortcut(.defaultAction)
+            }
         }
         .padding(.horizontal, 34)
         .padding(.vertical, 28)
         .frame(width: 360)
         .divePanel()
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(notice.title). \(notice.detail)")
     }
 
     private var header: some View {

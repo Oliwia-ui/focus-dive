@@ -100,6 +100,12 @@ Copy supplied visual assets into the repository and package them inside the appl
 
 Drive the surface-light breathing and drifting particles from the dimmed procedural-water layer while rendering the fish school in its own ambient layer so silhouettes remain legible over the photograph. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep fish dark and slow, but give them enough scale and restrained cyan edge light to remain recognizable without competing with the countdown or controls.
 
+## TD-017 — Hold the completed timer at the surface
+
+**Status:** Accepted
+
+A completed session remains in the `.completed` state at `00:00` and zero metres until the user explicitly starts the next queued session. Completion logging happens immediately, but queue advancement is deferred. Automatic break settings from older snapshots remain decodable for compatibility but are ignored, and the UI no longer exposes automatic break startup.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior
