@@ -8,10 +8,13 @@ import UserNotifications
 final class FocusDiveViewModel: ObservableObject {
     @Published private(set) var coordinator: SessionCoordinator
     @Published private(set) var history: [DiveLogEntry]
+    @Published private(set) var tasks: TaskCollection
     @Published var mission: String
     @Published var showSettings = false
     @Published var showLogbook = false
+    @Published var showTasks = false
     @Published var isCompact = false
+    @Published var selectedTaskID: UUID?
     @Published var discovery: Discovery?
     @Published var completionNotice: CompletionNotice?
     @Published var persistenceError: String?
@@ -46,7 +49,9 @@ final class FocusDiveViewModel: ObservableObject {
 
         coordinator = SessionCoordinator(settings: snapshot.settings)
         history = snapshot.history
+        tasks = TaskCollection(items: snapshot.tasks)
         mission = ""
+        selectedTaskID = nil
         discovery = Self.discovery(for: snapshot.history.count)
         completionNotice = nil
     }
@@ -56,8 +61,11 @@ final class FocusDiveViewModel: ObservableObject {
     var currentKind: SessionKind { coordinator.currentKind }
     var remainingSeconds: Int { timer.remainingSeconds }
     var isRunning: Bool { timer.state == .running }
+    var timerState: TimerState { timer.state }
     var depth: Double { timer.depthMeters }
     var progress: Double { timer.progress }
+    var presentationDepth: Double { timer.continuousDepthMeters() }
+    var presentationProgress: Double { timer.continuousProgress() }
     var completedToday: Int {
         history.filter { Calendar.current.isDateInToday($0.completedAt) }.count
     }
@@ -67,15 +75,32 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func toggleTimer() {
+        if timer.state == .completed {
+            startNextSession()
+            return
+        }
         if isRunning {
             coordinator.pause()
             ticker?.invalidate()
         } else {
             completionNotice = nil
             coordinator.mission = mission
+            coordinator.linkedTaskID = selectedTaskID
             coordinator.start()
             startTicker()
         }
+        objectWillChange.send()
+    }
+
+    func startNextSession() {
+        completionNotice = nil
+        coordinator.startNextSession()
+        startTicker()
+        objectWillChange.send()
+    }
+
+    func staySurfaced() {
+        completionNotice = nil
         objectWillChange.send()
     }
 
@@ -106,14 +131,83 @@ final class FocusDiveViewModel: ObservableObject {
     func updateSettings(_ settings: DurationSettings) {
         ticker?.invalidate()
         coordinator.updateSettings(settings)
+        if coordinator.timer.state == .running {
+            startTicker()
+        }
         persist()
         objectWillChange.send()
+    }
+
+    func minutes(for kind: SessionKind) -> Int {
+        switch kind {
+        case .focus: settings.focusMinutes
+        case .shortBreak: settings.shortBreakMinutes
+        case .longBreak: settings.longBreakMinutes
+        case .custom: settings.customMinutes
+        }
+    }
+
+    func selectSession(_ kind: SessionKind) {
+        ticker?.invalidate()
+        completionNotice = nil
+        coordinator.selectSession(kind)
+        objectWillChange.send()
+    }
+
+    func updateDuration(for kind: SessionKind, minutes: Int) {
+        var updated = settings
+        switch kind {
+        case .focus:
+            updated.focusMinutes = min(max(minutes, 1), 120)
+        case .shortBreak:
+            updated.shortBreakMinutes = min(max(minutes, 1), 30)
+        case .longBreak:
+            updated.longBreakMinutes = min(max(minutes, 1), 60)
+        case .custom:
+            updated.customMinutes = min(max(minutes, 1), 180)
+        }
+        updateSettings(updated)
     }
 
     func updateNote(for entryID: UUID, note: String) {
         guard let index = history.firstIndex(where: { $0.id == entryID }) else { return }
         history[index].note = note
         persist()
+    }
+
+    @discardableResult
+    func createTask(title: String, details: String = "") throws -> DiveTask {
+        let task = try tasks.create(title: title, details: details)
+        persist()
+        return task
+    }
+
+    func updateTask(id: UUID, title: String, details: String) throws {
+        try tasks.update(id: id, title: title, details: details)
+        persist()
+    }
+
+    func setTaskCompleted(_ isCompleted: Bool, id: UUID) throws {
+        if isCompleted {
+            try tasks.complete(id: id)
+        } else {
+            try tasks.reopen(id: id)
+        }
+        persist()
+    }
+
+    func deleteTask(id: UUID) throws {
+        try tasks.delete(id: id)
+        if selectedTaskID == id {
+            selectedTaskID = nil
+        }
+        persist()
+    }
+
+    func linkTask(_ id: UUID?) {
+        selectedTaskID = id
+        guard let id, let task = tasks.items.first(where: { $0.id == id }) else { return }
+        mission = task.title
     }
 
     func requestNotificationPermission() {
@@ -151,7 +245,13 @@ final class FocusDiveViewModel: ObservableObject {
     private func persist() {
         guard persistenceWritable else { return }
         do {
-            try store.save(AppSnapshot(settings: coordinator.settings, history: history))
+            try store.save(
+                AppSnapshot(
+                    settings: coordinator.settings,
+                    history: history,
+                    tasks: tasks.items
+                )
+            )
             persistenceError = nil
         } catch {
             persistenceError = "Focus Dive could not save your latest changes."
@@ -182,12 +282,13 @@ final class FocusDiveViewModel: ObservableObject {
 struct CompletionNotice: Equatable {
     let kind: SessionKind
 
-    var title: String { kind == .focus ? "Surface reached" : "Break complete" }
+    var title: String { kind == .focus ? "Dive Complete" : "Break Complete" }
     var detail: String {
         kind == .focus
-            ? "A quiet focus dive is now in your logbook."
+            ? "You reached the surface. Start a break when you are ready."
             : "Your next focus dive is ready when you are."
     }
+    var actionTitle: String { kind == .focus ? "Start Break" : "Start Focus Dive" }
 }
 
 struct Discovery: Identifiable, Equatable {

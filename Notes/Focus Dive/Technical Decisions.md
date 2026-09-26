@@ -58,6 +58,66 @@ Compute discoveries from completed history count and derive weekly profile, stre
 
 Pass Reduce Motion into continuous visual effects and progress animation. With reduced motion enabled, decorative drift is effectively frozen and progress transitions are not animated.
 
+## TD-010 — Edit durations without interrupting active work
+
+**Status:** Accepted
+
+Expose bounded duration editors directly from the visible session queue. Updating settings refreshes an idle session immediately, while a running or paused countdown keeps its original duration and elapsed-time anchor. New settings apply when the next session is created.
+
+## TD-011 — Use one deployment-compatible glass treatment
+
+**Status:** Accepted
+
+Use ultra-thin material, a restrained navy tint, soft cyan edge reflection, and the same panel shape across the supported macOS 14+ range. Avoid compile-time dependencies on newer SwiftUI-only glass APIs so SwiftPM and Xcode 16 CI remain valid while preserving the intended layered-glass direction.
+
+## TD-012 — Extend the existing snapshot for local tasks
+
+**Status:** Accepted
+
+Persist task records alongside settings and dive history in the existing local JSON snapshot. Decode a missing `tasks` key as an empty collection so snapshots created by earlier builds remain readable. Keep task lifecycle rules in `FocusDiveCore`; the SwiftUI view model exposes thin persistence-backed operations.
+
+## TD-013 — Link sessions to tasks without removing free-form missions
+
+**Status:** Accepted
+
+Keep the existing mission field as the human-readable activity description and add an optional task identifier to completed dive records. Selecting an open task fills the mission title, but users can still refine the activity description before starting. This satisfies task/session traceability without forcing every focus dive into a task.
+
+## TD-014 — Append events to date-based Obsidian Markdown logs
+
+**Status:** Accepted
+
+Use one Markdown file per date and event category inside the selected vault. Create the file once with a heading, then seek to the end and append immutable event blocks with unique event identifiers. This keeps logs readable in Obsidian, prevents silent replacement of older records, and avoids generating a large number of single-event files.
+
+## TD-015 — Bundle photographic backgrounds with a procedural fallback
+
+**Status:** Accepted for visual evaluation
+
+Copy supplied visual assets into the repository and package them inside the application bundle. Render the cavern photograph with aspect-fill cropping beneath the existing procedural water layer, then apply restrained saturation and navy edge gradients so controls remain legible. If the resource is absent or unreadable, retain the procedural ocean as a complete fallback instead of failing or showing an empty background.
+
+## TD-016 — Animate ambience only when it communicates active work
+
+**Status:** Accepted
+
+Drive the surface-light breathing and drifting particles from the dimmed procedural-water layer. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep ambience sparse and subordinate to the countdown.
+
+## TD-017 — Hold the completed timer at the surface
+
+**Status:** Accepted
+
+A completed session remains in the `.completed` state at `00:00` and zero metres until the user explicitly starts the next queued session. Completion logging happens immediately, but queue advancement is deferred. Automatic break settings from older snapshots remain decodable for compatibility but are ignored, and the UI no longer exposes automatic break startup.
+
+## TD-018 — Separate authoritative timer values from smooth presentation values
+
+**Status:** Accepted
+
+Keep integer remaining seconds as the timer’s authoritative state and derive fractional presentation progress from the existing date anchor. The UI refresh ticker uses the fractional value for smooth ring, depth, and environmental motion without changing completion boundaries, persistence, or countdown labels. Paused and completed timers return stable presentation values.
+
+## TD-019 — Keep session selection manual and the timer spatially stable
+
+**Status:** Accepted
+
+Treat the visible session list as a direct selector rather than a fixed-only queue: choosing Focus Dive, Short Break, Long Break, or Custom Session replaces the current countdown with that session in an idle state. Keep the countdown in a fixed-size central frame across session and status changes. Limit circular decoration to the timer track and progress ring; remove compass-like guide arcs, concentric rings, and cardinal ticks. Keep the underwater ambience free of fish so background motion remains quiet and non-distracting.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

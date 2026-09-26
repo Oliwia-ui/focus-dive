@@ -12,24 +12,71 @@ import Testing
 }
 
 @Test func durationSettingsConvertMinutesToSeconds() throws {
-    let settings = try DurationSettings(focusMinutes: 30, shortBreakMinutes: 7, longBreakMinutes: 20)
+    let settings = try DurationSettings(focusMinutes: 30, shortBreakMinutes: 7, longBreakMinutes: 20, customMinutes: 42)
 
     #expect(settings.duration(for: .focus) == 1_800)
     #expect(settings.duration(for: .shortBreak) == 420)
     #expect(settings.duration(for: .longBreak) == 1_200)
+    #expect(settings.duration(for: .custom) == 2_520)
+}
+
+@Test func selectingCustomSessionUsesItsConfiguredDurationAndReturnsToFocus() throws {
+    let settings = try DurationSettings(
+        focusMinutes: 25,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 15,
+        customMinutes: 42
+    )
+    let coordinator = SessionCoordinator(settings: settings)
+
+    coordinator.selectSession(.custom)
+
+    #expect(coordinator.currentKind == .custom)
+    #expect(coordinator.timer.durationSeconds == 2_520)
+    #expect(coordinator.timer.state == .idle)
+
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 2_520))
+    coordinator.prepareNextSession()
+
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 0)
+}
+
+@Test func selectingAnySessionDirectlyReplacesARunningTimerWithAnIdleTimer() throws {
+    let settings = try DurationSettings(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 18)
+    let coordinator = SessionCoordinator(settings: settings)
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 60))
+
+    coordinator.selectSession(.longBreak)
+
+    #expect(coordinator.currentKind == .longBreak)
+    #expect(coordinator.queuePosition == 3)
+    #expect(coordinator.timer.state == .idle)
+    #expect(coordinator.timer.remainingSeconds == 1_080)
 }
 
 @Test func sessionCompletionCreatesDiveLogEntry() throws {
     let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+    let taskID = UUID()
     coordinator.mission = "Finish project proposal"
+    coordinator.linkedTaskID = taskID
     coordinator.start(at: Date(timeIntervalSince1970: 100))
 
-    let entry = coordinator.completeCurrentSession(at: Date(timeIntervalSince1970: 1_600))
+    let result = coordinator.tick(at: Date(timeIntervalSince1970: 1_600))
+    let entry = result.logEntry
 
     #expect(entry?.taskName == "Finish project proposal")
+    #expect(entry?.taskID == taskID)
     #expect(entry?.durationSeconds == 1_500)
     #expect(entry?.depthReachedMeters == 60)
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.timer.state == .completed)
+
+    coordinator.startNextSession(at: Date(timeIntervalSince1970: 1_601))
     #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.timer.state == .running)
 }
 
 @Test func jsonStoreRoundTripsSettingsAndHistory() throws {
@@ -55,7 +102,12 @@ import Testing
     let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
 
     #expect(coordinator.queuePosition == 0)
-    _ = coordinator.completeCurrentSession()
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 1_500))
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 0)
+
+    coordinator.prepareNextSession()
     #expect(coordinator.currentKind == .shortBreak)
     #expect(coordinator.queuePosition == 1)
 
@@ -63,9 +115,38 @@ import Testing
     #expect(coordinator.currentKind == .focus)
     #expect(coordinator.queuePosition == 2)
 
-    _ = coordinator.completeCurrentSession()
+    coordinator.start(at: Date(timeIntervalSince1970: 2_000))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 3_500))
+    coordinator.prepareNextSession()
     #expect(coordinator.currentKind == .longBreak)
     #expect(coordinator.queuePosition == 3)
+}
+
+@Test func completedTimerRemainsAtSurfaceUntilTheUserStartsTheNextSession() throws {
+    let settings = try DurationSettings(
+        focusMinutes: 1,
+        shortBreakMinutes: 5,
+        longBreakMinutes: 15,
+        automaticallyStartBreaks: true
+    )
+    let coordinator = SessionCoordinator(settings: settings)
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+
+    let result = coordinator.tick(at: Date(timeIntervalSince1970: 60))
+
+    #expect(result.didComplete)
+    #expect(coordinator.currentKind == .focus)
+    #expect(coordinator.queuePosition == 0)
+    #expect(coordinator.timer.state == .completed)
+    #expect(coordinator.timer.remainingSeconds == 0)
+    #expect(coordinator.timer.depthMeters == 0)
+
+    coordinator.startNextSession(at: Date(timeIntervalSince1970: 61))
+
+    #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.queuePosition == 1)
+    #expect(coordinator.timer.state == .running)
+    #expect(coordinator.timer.remainingSeconds == 300)
 }
 
 @Test func breakCompletionIsReportedWithoutCreatingLogEntry() throws {
@@ -78,4 +159,108 @@ import Testing
     #expect(result.didComplete)
     #expect(result.logEntry == nil)
     #expect(result.completedKind == .shortBreak)
+    #expect(coordinator.currentKind == .shortBreak)
+    #expect(coordinator.timer.state == .completed)
+}
+
+@Test func changingDurationsRefreshesAnIdleSession() throws {
+    let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+
+    coordinator.updateSettings(try .init(focusMinutes: 40, shortBreakMinutes: 8, longBreakMinutes: 20))
+
+    #expect(coordinator.timer.durationSeconds == 2_400)
+    #expect(coordinator.timer.remainingSeconds == 2_400)
+}
+
+@Test func changingDurationsDoesNotInterruptARunningSession() throws {
+    let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
+    coordinator.start(at: Date(timeIntervalSince1970: 0))
+    _ = coordinator.tick(at: Date(timeIntervalSince1970: 60))
+
+    coordinator.updateSettings(try .init(focusMinutes: 40, shortBreakMinutes: 8, longBreakMinutes: 20))
+
+    #expect(coordinator.timer.state == .running)
+    #expect(coordinator.timer.remainingSeconds == 1_440)
+    #expect(coordinator.settings.focusMinutes == 40)
+}
+
+@Test func taskCollectionSupportsTheRequiredLifecycle() throws {
+    let createdAt = Date(timeIntervalSince1970: 100)
+    var collection = TaskCollection()
+
+    let task = try collection.create(
+        title: "Write research summary",
+        details: "Compare three focus applications",
+        at: createdAt
+    )
+    #expect(collection.items == [task])
+    #expect(task.title == "Write research summary")
+    #expect(!task.isCompleted)
+
+    try collection.update(
+        id: task.id,
+        title: "Write timer research summary",
+        details: "Compare three timer applications",
+        at: Date(timeIntervalSince1970: 200)
+    )
+    #expect(collection.items[0].title == "Write timer research summary")
+    #expect(collection.items[0].updatedAt == Date(timeIntervalSince1970: 200))
+
+    try collection.complete(id: task.id, at: Date(timeIntervalSince1970: 300))
+    #expect(collection.items[0].isCompleted)
+    #expect(collection.items[0].completedAt == Date(timeIntervalSince1970: 300))
+
+    try collection.reopen(id: task.id, at: Date(timeIntervalSince1970: 400))
+    #expect(!collection.items[0].isCompleted)
+    #expect(collection.items[0].completedAt == nil)
+
+    let deleted = try collection.delete(id: task.id)
+    #expect(deleted.id == task.id)
+    #expect(collection.items.isEmpty)
+}
+
+@Test func taskCollectionRejectsBlankTitlesAndMissingTasks() throws {
+    var collection = TaskCollection()
+
+    #expect(throws: TaskError.blankTitle) {
+        _ = try collection.create(title: "   ", at: .now)
+    }
+    #expect(throws: TaskError.notFound) {
+        try collection.complete(id: UUID(), at: .now)
+    }
+}
+
+@Test func jsonStoreRoundTripsTasks() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let store = JSONDiveStore(directory: directory)
+    var tasks = TaskCollection()
+    _ = try tasks.create(title: "Prepare prototype", at: Date(timeIntervalSince1970: 55))
+    let snapshot = AppSnapshot(settings: .standard, history: [], tasks: tasks.items)
+
+    try store.save(snapshot)
+    let restored = try store.load()
+
+    #expect(restored.tasks == tasks.items)
+}
+
+@Test func snapshotDecodesLegacyFilesWithoutTasks() throws {
+    let data = Data("""
+    {
+      "settings": {
+        "focusMinutes": 25,
+        "shortBreakMinutes": 5,
+        "longBreakMinutes": 15,
+        "automaticallyStartBreaks": false,
+        "ambienceEnabled": false,
+        "completionSoundEnabled": false
+      },
+      "history": []
+    }
+    """.utf8)
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let snapshot = try decoder.decode(AppSnapshot.self, from: data)
+
+    #expect(snapshot.tasks.isEmpty)
 }

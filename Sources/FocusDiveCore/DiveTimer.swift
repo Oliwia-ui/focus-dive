@@ -28,6 +28,14 @@ public struct DiveTimer: Equatable, Sendable {
         60 * (Double(remainingSeconds) / Double(durationSeconds))
     }
 
+    public func continuousProgress(at date: Date = .now) -> Double {
+        1 - (continuousRemainingSeconds(at: date) / Double(durationSeconds))
+    }
+
+    public func continuousDepthMeters(at date: Date = .now) -> Double {
+        60 * (continuousRemainingSeconds(at: date) / Double(durationSeconds))
+    }
+
     public mutating func start(at date: Date = .now) {
         guard state != .completed, state != .running else { return }
         anchorDate = date
@@ -54,6 +62,14 @@ public struct DiveTimer: Equatable, Sendable {
         guard state == .running, let anchorDate, let anchorRemainingSeconds else { return remainingSeconds }
         let elapsed = max(0, Int(date.timeIntervalSince(anchorDate)))
         return max(0, anchorRemainingSeconds - elapsed)
+    }
+
+    private func continuousRemainingSeconds(at date: Date) -> Double {
+        guard state == .running, let anchorDate, let anchorRemainingSeconds else {
+            return Double(remainingSeconds)
+        }
+        let elapsed = max(0, date.timeIntervalSince(anchorDate))
+        return max(0, Double(anchorRemainingSeconds) - elapsed)
     }
 
     @discardableResult

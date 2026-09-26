@@ -1,14 +1,40 @@
+import AppKit
 import SwiftUI
 
 struct OceanBackground: View {
     let progress: Double
     let reduceMotion: Bool
+    let isActive: Bool
+    let accent: Color
+    @StateObject private var motion = AmbientMotionState()
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 24.0)) { timeline in
+        ZStack {
+            if let image = Self.cavernImage {
+                GeometryReader { proxy in
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
+                        .saturation(0.66 + progress * 0.18)
+                        .contrast(1.1 - progress * 0.08)
+                        .brightness(-0.22 + progress * 0.18)
+                }
+            }
+
+            RadialGradient(
+                colors: [accent.opacity(0.1), .clear],
+                center: .top,
+                startRadius: 0,
+                endRadius: 720
+            )
+
+            TimelineView(.animation(minimumInterval: reduceMotion || !isActive ? 10 : 1.0 / 24.0)) { timeline in
             Canvas { context, size in
-                let phase = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+                let phase = animationPhase(at: timeline.date)
                 let bright = max(0.12, progress)
+                let breath = reduceMotion ? 0.45 : (sin(phase * 0.42) + 1) / 2
 
                 context.fill(
                     Path(CGRect(origin: .zero, size: size)),
@@ -23,30 +49,72 @@ struct OceanBackground: View {
                     )
                 )
 
-                var surface = Path()
-                surface.addRect(CGRect(x: 0, y: 0, width: size.width, height: size.height * 0.11))
-                context.fill(surface, with: .linearGradient(
-                    Gradient(colors: [.diveCyan.opacity(0.26 + bright * 0.22), .clear]),
-                    startPoint: .zero,
-                    endPoint: CGPoint(x: 0, y: size.height * 0.12)
+                let surfaceGlow = Path(ellipseIn: CGRect(
+                    x: size.width * 0.23,
+                    y: -size.height * 0.35,
+                    width: size.width * 0.54,
+                    height: size.height * 0.92
                 ))
+                context.fill(
+                    surfaceGlow,
+                    with: .radialGradient(
+                        Gradient(colors: [
+                            Color.diveCyan.opacity(0.18 + bright * 0.12 + breath * 0.07),
+                            Color.diveCobalt.opacity(0.08),
+                            .clear
+                        ]),
+                        center: CGPoint(x: size.width * 0.5, y: size.height * 0.05),
+                        startRadius: 0,
+                        endRadius: size.width * 0.34
+                    )
+                )
 
-                for index in 0..<8 {
-                    let x = size.width * (0.25 + Double(index) * 0.075)
+                var surface = Path()
+                surface.addRect(CGRect(x: 0, y: 0, width: size.width, height: size.height * 0.12))
+                context.fill(
+                    surface,
+                    with: .linearGradient(
+                        Gradient(colors: [.diveCyan.opacity(0.28 + bright * 0.22), .clear]),
+                        startPoint: .zero,
+                        endPoint: CGPoint(x: 0, y: size.height * 0.12)
+                    )
+                )
+
+                for line in 0..<5 {
+                    var ripple = Path()
+                    let baseY = Double(line) * 9 + 5
+                    ripple.move(to: CGPoint(x: 0, y: baseY))
+                    for step in 1...32 {
+                        let x = size.width * Double(step) / 32
+                        let y = baseY + sin(Double(step) * 0.82 + phase * 0.16 + Double(line)) * (2.5 + Double(line) * 0.45)
+                        ripple.addLine(to: CGPoint(x: x, y: y))
+                    }
+                    context.stroke(
+                        ripple,
+                        with: .color(.diveCyan.opacity(0.12 - Double(line) * 0.012)),
+                        lineWidth: 1
+                    )
+                }
+
+                for index in 0..<9 {
+                    let x = size.width * (0.18 + Double(index) * 0.08)
                     let sway = sin(phase * 0.18 + Double(index)) * 28
                     var ray = Path()
                     ray.move(to: CGPoint(x: x + sway, y: 0))
-                    ray.addLine(to: CGPoint(x: x - 85 + sway, y: size.height * 0.62))
-                    ray.addLine(to: CGPoint(x: x + 105 + sway, y: size.height * 0.62))
+                    ray.addLine(to: CGPoint(x: x - 80 + sway, y: size.height * 0.7))
+                    ray.addLine(to: CGPoint(x: x + 115 + sway, y: size.height * 0.7))
                     ray.closeSubpath()
-                    context.fill(ray, with: .linearGradient(
-                        Gradient(colors: [.diveCyan.opacity(0.045 + bright * 0.04), .clear]),
-                        startPoint: CGPoint(x: x, y: 0),
-                        endPoint: CGPoint(x: x, y: size.height * 0.64)
-                    ))
+                    context.fill(
+                        ray,
+                        with: .linearGradient(
+                            Gradient(colors: [.diveCyan.opacity(0.025 + bright * 0.03 + breath * 0.035), .clear]),
+                            startPoint: CGPoint(x: x, y: 0),
+                            endPoint: CGPoint(x: x, y: size.height * 0.7)
+                        )
+                    )
                 }
 
-                for index in 0..<72 {
+                for index in 0..<84 {
                     let seed = Double((index * 47) % 101) / 101
                     let x = seed * size.width
                     let baseY = Double((index * 83) % 97) / 97 * size.height
@@ -55,54 +123,168 @@ struct OceanBackground: View {
                     context.fill(Path(ellipseIn: point), with: .color(.diveCyan.opacity(0.18)))
                 }
 
-                var terrain = Path()
-                terrain.move(to: CGPoint(x: 0, y: size.height))
-                terrain.addLine(to: CGPoint(x: 0, y: size.height * 0.78))
-                for index in 0...24 {
-                    let x = size.width * Double(index) / 24
-                    let ridge = sin(Double(index) * 1.7) * 32 + sin(Double(index) * 0.53) * 48
-                    terrain.addLine(to: CGPoint(x: x, y: size.height * 0.83 + ridge))
+                var leftSpire = Path()
+                leftSpire.move(to: CGPoint(x: size.width * 0.07, y: size.height))
+                leftSpire.addCurve(
+                    to: CGPoint(x: size.width * 0.2, y: size.height * 0.29),
+                    control1: CGPoint(x: size.width * 0.1, y: size.height * 0.72),
+                    control2: CGPoint(x: size.width * 0.15, y: size.height * 0.45)
+                )
+                leftSpire.addCurve(
+                    to: CGPoint(x: size.width * 0.3, y: size.height),
+                    control1: CGPoint(x: size.width * 0.23, y: size.height * 0.54),
+                    control2: CGPoint(x: size.width * 0.28, y: size.height * 0.78)
+                )
+                leftSpire.closeSubpath()
+                context.fill(
+                    leftSpire,
+                    with: .linearGradient(
+                        Gradient(colors: [
+                            Color.diveCobalt.opacity(0.18 - progress * 0.08),
+                            .black.opacity(0.84 - progress * 0.28)
+                        ]),
+                        startPoint: CGPoint(x: 0, y: size.height * 0.3),
+                        endPoint: CGPoint(x: 0, y: size.height)
+                    )
+                )
+
+                for layer in 0..<3 {
+                    var terrain = Path()
+                    let layerOffset = Double(layer) * size.height * 0.035
+                    terrain.move(to: CGPoint(x: 0, y: size.height))
+                    terrain.addLine(to: CGPoint(x: 0, y: size.height * 0.73 + layerOffset))
+                    for index in 0...36 {
+                        let x = size.width * Double(index) / 36
+                        let ridge = sin(Double(index) * 1.51 + Double(layer)) * (20 + Double(layer) * 8)
+                            + sin(Double(index) * 0.47 + 1.8) * (44 - Double(layer) * 7)
+                            + abs(sin(Double(index) * 2.7)) * 22
+                        terrain.addLine(to: CGPoint(x: x, y: size.height * 0.79 + layerOffset + ridge))
+                    }
+                    terrain.addLine(to: CGPoint(x: size.width, y: size.height))
+                    terrain.closeSubpath()
+                    context.fill(
+                        terrain,
+                        with: .linearGradient(
+                            Gradient(colors: [
+                                Color(
+                                    red: 0.02,
+                                    green: 0.15 - Double(layer) * 0.025,
+                                    blue: 0.22 - Double(layer) * 0.025
+                                ).opacity(0.9 - progress * 0.38),
+                                .black.opacity(0.98 - progress * 0.3)
+                            ]),
+                            startPoint: CGPoint(x: 0, y: size.height * 0.72),
+                            endPoint: CGPoint(x: 0, y: size.height)
+                        )
+                    )
                 }
-                terrain.addLine(to: CGPoint(x: size.width, y: size.height))
-                terrain.closeSubpath()
-                context.fill(terrain, with: .linearGradient(
-                    Gradient(colors: [Color(red: 0.025, green: 0.13, blue: 0.19), .black.opacity(0.96)]),
-                    startPoint: CGPoint(x: 0, y: size.height * 0.75),
-                    endPoint: CGPoint(x: 0, y: size.height)
-                ))
             }
+            }
+            .opacity(Self.cavernImage == nil ? 1 : 0.34)
+
+            LinearGradient(
+                colors: [
+                    Color.diveAbyss.opacity(0.38),
+                    Color.diveNavy.opacity(0.12 + (1 - progress) * 0.18),
+                    Color.diveAbyss.opacity(0.46 - progress * 0.22)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.46),
+                    .clear,
+                    Color.black.opacity(0.34)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
         .ignoresSafeArea()
+        .onAppear {
+            motion.setActive(isActive, at: Date())
+        }
+        .onChange(of: isActive) { _, active in
+            motion.setActive(active, at: Date())
+        }
+    }
+
+    private func animationPhase(at date: Date) -> TimeInterval {
+        guard !reduceMotion else { return 0 }
+        return motion.phase(at: date)
+    }
+
+    private static let cavernImage: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "DiveCavern", withExtension: "jpg") else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
+    }()
+}
+
+final class AmbientMotionState: ObservableObject {
+    private var accumulatedPhase: TimeInterval = 0
+    private var activeSince: Date?
+
+    func setActive(_ isActive: Bool, at date: Date) {
+        if isActive {
+            if activeSince == nil {
+                activeSince = date
+            }
+        } else if let activeSince {
+            accumulatedPhase += max(0, date.timeIntervalSince(activeSince))
+            self.activeSince = nil
+        }
+    }
+
+    func phase(at date: Date) -> TimeInterval {
+        guard let activeSince else { return accumulatedPhase }
+        return accumulatedPhase + max(0, date.timeIntervalSince(activeSince))
     }
 }
 
 struct BubbleField: View {
     let reduceMotion: Bool
-    private let bubbles: [(Double, Double, Double)] = [
-        (0.08, 0.64, 8), (0.14, 0.31, 5), (0.2, 0.76, 11), (0.26, 0.18, 6),
-        (0.78, 0.2, 9), (0.83, 0.64, 13), (0.89, 0.38, 6), (0.94, 0.72, 8),
-        (0.71, 0.81, 4), (0.12, 0.88, 4), (0.86, 0.49, 4)
+    let isCompleting: Bool
+    private let bubbles: [(x: Double, y: Double, size: Double, cycle: Double, delay: Double)] = [
+        (0.12, 0.78, 7, 8.8, 0.04),
+        (0.2, 0.63, 11, 10.6, 0.42),
+        (0.29, 0.84, 5, 7.4, 0.73),
+        (0.72, 0.72, 8, 9.5, 0.18),
+        (0.8, 0.86, 12, 11.3, 0.58),
+        (0.88, 0.6, 6, 8.1, 0.86),
+        (0.64, 0.9, 4, 6.8, 0.31)
     ]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 30.0)) { timeline in
+        TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 24.0)) { timeline in
             GeometryReader { proxy in
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 ForEach(Array(bubbles.enumerated()), id: \.offset) { index, bubble in
-                    let drift = sin(time * 0.35 + Double(index)) * 12
-                    let rise = reduceMotion ? 0 : (time * (5 + Double(index % 3))).truncatingRemainder(dividingBy: proxy.size.height * 0.35)
+                    let localPhase = reduceMotion
+                        ? bubble.delay
+                        : ((time / bubble.cycle) + bubble.delay).truncatingRemainder(dividingBy: 1)
+                    let drift = sin(localPhase * .pi * 2 + Double(index)) * (8 + Double(index % 3) * 3)
+                    let rise = localPhase * proxy.size.height * (isCompleting ? 0.62 : 0.42)
+                    let scale = 0.72 + localPhase * 0.5
+                    let lifecycleOpacity = reduceMotion
+                        ? 0.26
+                        : max(0, sin(localPhase * .pi)) * (isCompleting ? 0.58 : 0.46)
                     Circle()
                         .fill(.white.opacity(0.035))
-                        .overlay(Circle().stroke(Color.diveCyan.opacity(0.55), lineWidth: 0.8))
+                        .overlay(Circle().stroke(Color.diveCyan.opacity(0.58), lineWidth: 0.8))
                         .overlay(alignment: .topLeading) {
                             Circle().fill(.white.opacity(0.8)).frame(width: 2.2, height: 2.2).padding(2)
                         }
-                        .frame(width: bubble.2, height: bubble.2)
+                        .frame(width: bubble.size, height: bubble.size)
+                        .scaleEffect(scale)
                         .position(
-                            x: proxy.size.width * bubble.0 + drift,
-                            y: proxy.size.height * bubble.1 - rise
+                            x: proxy.size.width * bubble.x + drift,
+                            y: proxy.size.height * bubble.y - rise
                         )
-                        .opacity(0.45 + 0.3 * sin(time * 0.5 + Double(index)))
+                        .opacity(lifecycleOpacity)
                 }
             }
         }

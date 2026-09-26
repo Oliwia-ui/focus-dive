@@ -2,6 +2,162 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Manual session selection and quieter timer console
+
+### Changed
+
+- Removed the animated fish layer and its unused visual token.
+- Made Focus Dive, Short Break, Long Break, and Custom Session directly selectable from the session panel.
+- Added a persisted, editable custom-session duration with backward-compatible decoding for older local snapshots.
+- Fixed the central timer to a stable 560-point square so session labels and state changes do not move it.
+- Removed the decorative compass arc, concentric guide rings, and cardinal tick marks while preserving the countdown progress ring.
+- Added restrained session-specific accent transitions without moving the timer.
+
+### Verified
+
+- Added core coverage for custom-session duration, selection, completion, and return to Focus Dive.
+
+## 2026-09-26 — Smooth ascent and paused-state animation
+
+### Added
+
+- Added continuous subsecond presentation progress so the timer ring, depth marker, and environmental ascent move smoothly while authoritative countdown values remain whole seconds.
+- Added explicit READY, IN PROGRESS, PAUSED, and SURFACED status text plus session-aware accessibility labels.
+- Added a restrained minute-boundary cyan ring pulse, dimmed paused ring, and a static pause ripple around the primary control.
+- Reduced the timer bubble field to seven varied bubbles with independent rise, drift, scale, and fade lifecycles.
+- Added a calm completion bubble state and a fade/upward completion-card transition.
+
+### Changed
+
+- Brightened and clarified the cavern photograph during ascent while reducing terrain, spire, and lower-vignette dominance near the surface.
+- Disabled numeric and completion movement when Reduce Motion is enabled while retaining clear static state changes.
+
+### Verified
+
+- Added continuous progress/depth tests covering fractional movement, pause freezing, and completed surface state.
+
+## 2026-09-26 — Manual post-dive break choice
+
+### Changed
+
+- Kept completed sessions at `00:00`, zero metres, and the bright surface state instead of immediately replacing them with the next queue timer.
+- Added explicit `Start Break` and `Start Focus Dive` completion actions while retaining a `Stay Surfaced` choice.
+- Removed the automatic-break control and no longer starts breaks automatically, including for older saved settings that enabled it.
+- Preserved the completed session kind and queue position until the user explicitly starts the next session.
+
+### Verified
+
+- Added regression coverage for completed focus and break sessions, manual queue advancement, and ignored automatic-break settings.
+
+## 2026-09-26 — Make the fish school clearly visible
+
+### Fixed
+
+- Moved the fish school out of the heavily dimmed procedural-water layer that reduced its final opacity to roughly one third.
+- Increased fish size and definition with restrained cyan edge light, dorsal fins, and visible eyes while keeping dark underwater silhouettes.
+- Kept fish visible while idle and animated them only during an active session, with pause and Reduce Motion freezing their current positions.
+
+### Verified
+
+- Rebuilt and launched the signed app bundle; the fish school is visibly present before the timer starts.
+
+## 2026-09-26 — Living underwater ambience
+
+### Added
+
+- Added a slow looping school of silhouetted fish with varied sizes, depths, speeds, and gentle vertical drift.
+- Added a calm breathing cycle to the cyan surface glow and moving light shafts.
+- Limited bubbles to actively running sessions so the scene communicates timer state instead of moving decoratively while idle.
+- Preserved the current ambient frame across pause and resume instead of snapping fish and light rays back to their starting positions.
+
+### Accessibility and performance
+
+- Freezes ambient drift when macOS Reduce Motion is enabled.
+- Slows the background refresh cadence while the timer is inactive.
+
+### Verified
+
+- All 19 core tests pass.
+- The release app bundle builds, passes strict code-signature verification, launches, and exposes the active pause control after starting a focus session.
+
+## 2026-09-26 — Photographic cavern background experiment
+
+### Changed
+
+- Bundled the supplied underwater cavern photograph as an application resource rather than depending on the temporary Hermes attachment path.
+- Composited the photograph beneath the existing procedural ocean effects with aspect-fill cropping, restrained saturation, and navy edge gradients for dashboard legibility.
+- Kept the procedural background as a fallback if the image resource cannot be loaded.
+- Updated both the XcodeGen project definition and local app-bundle script to package the resource.
+
+### Verified
+
+- All 19 core tests pass.
+- The release app bundle builds, contains the image resource, passes strict code-signature verification, and launches successfully.
+
+## 2026-09-25 — Restore Xcode 16 compatibility
+
+### Fixed
+
+- Removed the compile-time dependency on the macOS 26-only SwiftUI glass API.
+- Kept the premium translucent panel treatment using material, tint, reflection, and shadow APIs supported by the macOS 14 deployment toolchain.
+- Restored Swift Package and Xcode project compilation on GitHub’s Xcode 16.4 runner.
+
+## 2026-09-25 — Append-only Obsidian record writer
+
+### Added
+
+- Added a tested Markdown event writer for user-selected Obsidian vaults.
+- Created predictable `Focus Dive/Tasks`, `Focus Dive/Sessions`, and `Focus Dive/Reflections` categories.
+- Appended events to date-based Markdown files without replacing earlier records.
+- Included local date, time, timezone, event type, status, task/activity, task identifier, actual duration, and a unique event identifier.
+- Sanitized multiline values so one activity cannot corrupt subsequent Markdown fields.
+
+### Verified
+
+- Added tests proving multiple task events remain in one daily log and cancelled sessions include actual elapsed duration.
+
+## 2026-09-25 — Task workspace and session linking
+
+### Added
+
+- Added a native task workspace for creating, viewing, editing, deleting, completing, and reopening tasks.
+- Added dashboard, menu, and keyboard access to Tasks.
+- Added a “Focus” action that links an open task to the next focus dive and fills the mission title.
+- Stored the linked task identifier on completed focus-session records while retaining free-form mission descriptions.
+- Added accessibility labels and stable identifiers for task creation and editing controls.
+
+### Verified
+
+- `swift build --product FocusDive` succeeds.
+- All 17 core tests pass, including linked-task session history coverage.
+
+## 2026-09-25 — Local task foundation
+
+### Added
+
+- Added a local task model with create, edit, complete, reopen, and delete operations.
+- Persisted tasks in the existing JSON snapshot without changing the app architecture.
+- Added backward-compatible decoding so existing user snapshots without tasks continue to load.
+- Added view-model task operations so the upcoming task interface uses the same guarded persistence path as timer settings and history.
+
+### Verified
+
+- Added lifecycle, validation, persistence round-trip, and legacy-snapshot migration tests.
+
+## 2026-09-25 — Editable session durations
+
+### Changed
+
+- Made every session queue row interactive with an accessible duration editor.
+- Added bounded one-minute adjustments and useful presets for focus, short-break, and long-break sessions.
+- Applied duration changes immediately while preserving an active countdown instead of resetting it.
+- Refined dashboard panels with a restrained material-based glass treatment that compiles across the supported macOS toolchain.
+
+### Verified
+
+- Added regression coverage for duration changes while idle and while running.
+- `swift test` passes all 13 tests.
+
 ## 2026-09-25 — MVP documentation baseline
 
 ### Added
