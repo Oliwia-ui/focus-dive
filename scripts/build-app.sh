@@ -15,6 +15,9 @@ rm -rf "$APP"
 mkdir -p "$MACOS" "$CONTENTS/Resources"
 cp "$BIN_DIR/FocusDive" "$MACOS/FocusDive"
 cp "$ROOT/Resources/Info.plist" "$CONTENTS/Info.plist"
+if [[ -f "$ROOT/Resources/DiveCavern.jpg" ]]; then
+    cp "$ROOT/Resources/DiveCavern.jpg" "$CONTENTS/Resources/DiveCavern.jpg"
+fi
 chmod +x "$MACOS/FocusDive"
 
 codesign --force --deep --sign - "$APP"
