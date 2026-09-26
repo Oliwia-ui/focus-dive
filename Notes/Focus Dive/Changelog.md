@@ -2,6 +2,25 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Living underwater ambience
+
+### Added
+
+- Added a slow looping school of silhouetted fish with varied sizes, depths, speeds, and gentle vertical drift.
+- Added a calm breathing cycle to the cyan surface glow and moving light shafts.
+- Limited bubbles to actively running sessions so the scene communicates timer state instead of moving decoratively while idle.
+- Preserved the current ambient frame across pause and resume instead of snapping fish and light rays back to their starting positions.
+
+### Accessibility and performance
+
+- Freezes ambient drift when macOS Reduce Motion is enabled.
+- Slows the background refresh cadence while the timer is inactive.
+
+### Verified
+
+- All 19 core tests pass.
+- The release app bundle builds, passes strict code-signature verification, launches, and exposes the active pause control after starting a focus session.
+
 ## 2026-09-26 — Photographic cavern background experiment
 
 ### Changed

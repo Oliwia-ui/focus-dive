@@ -94,6 +94,12 @@ Use one Markdown file per date and event category inside the selected vault. Cre
 
 Copy supplied visual assets into the repository and package them inside the application bundle. Render the cavern photograph with aspect-fill cropping beneath the existing procedural water layer, then apply restrained saturation and navy edge gradients so controls remain legible. If the resource is absent or unreadable, retain the procedural ocean as a complete fallback instead of failing or showing an empty background.
 
+## TD-016 — Animate ambience only when it communicates active work
+
+**Status:** Accepted
+
+Drive the surface-light breathing, drifting particles, and fish school from the existing background timeline while a session is running. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep fish sparse, dark, and slow so they add depth without competing with the countdown or controls.
+
 ## Open decisions
 
 - Persistence migration and recovery behavior

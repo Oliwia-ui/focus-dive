@@ -4,6 +4,8 @@ import SwiftUI
 struct OceanBackground: View {
     let progress: Double
     let reduceMotion: Bool
+    let isActive: Bool
+    @StateObject private var motion = AmbientMotionState()
 
     var body: some View {
         ZStack {
@@ -20,10 +22,11 @@ struct OceanBackground: View {
                 }
             }
 
-            TimelineView(.animation(minimumInterval: reduceMotion ? 10 : 1.0 / 24.0)) { timeline in
+            TimelineView(.animation(minimumInterval: reduceMotion || !isActive ? 10 : 1.0 / 24.0)) { timeline in
             Canvas { context, size in
-                let phase = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+                let phase = animationPhase(at: timeline.date)
                 let bright = max(0.12, progress)
+                let breath = reduceMotion ? 0.45 : (sin(phase * 0.42) + 1) / 2
 
                 context.fill(
                     Path(CGRect(origin: .zero, size: size)),
@@ -48,7 +51,7 @@ struct OceanBackground: View {
                     surfaceGlow,
                     with: .radialGradient(
                         Gradient(colors: [
-                            Color.diveCyan.opacity(0.2 + bright * 0.14),
+                            Color.diveCyan.opacity(0.18 + bright * 0.12 + breath * 0.07),
                             Color.diveCobalt.opacity(0.08),
                             .clear
                         ]),
@@ -96,10 +99,44 @@ struct OceanBackground: View {
                     context.fill(
                         ray,
                         with: .linearGradient(
-                            Gradient(colors: [.diveCyan.opacity(0.04 + bright * 0.035), .clear]),
+                            Gradient(colors: [.diveCyan.opacity(0.025 + bright * 0.03 + breath * 0.035), .clear]),
                             startPoint: CGPoint(x: x, y: 0),
                             endPoint: CGPoint(x: x, y: size.height * 0.7)
                         )
+                    )
+                }
+
+                for index in 0..<5 {
+                    let fishWidth = 32 + Double(index % 3) * 12
+                    let fishHeight = fishWidth * 0.34
+                    let cycleWidth = size.width + fishWidth * 2
+                    let speed = 7 + Double(index % 4) * 2.3
+                    let seed = Double((index * 37) % 97) / 97
+                    let traveled = (phase * speed + seed * cycleWidth)
+                        .truncatingRemainder(dividingBy: cycleWidth)
+                    let x = size.width + fishWidth - traveled
+                    let baseY = size.height * (0.2 + Double((index * 19) % 53) / 100)
+                    let y = baseY + sin(phase * 0.24 + Double(index) * 1.7) * 8
+                    let bodyRect = CGRect(
+                        x: x - fishWidth / 2,
+                        y: y - fishHeight / 2,
+                        width: fishWidth,
+                        height: fishHeight
+                    )
+                    let body = Path(ellipseIn: bodyRect)
+
+                    var tail = Path()
+                    tail.move(to: CGPoint(x: bodyRect.maxX - 2, y: y))
+                    tail.addLine(to: CGPoint(x: bodyRect.maxX + fishWidth * 0.35, y: y - fishHeight * 0.58))
+                    tail.addLine(to: CGPoint(x: bodyRect.maxX + fishWidth * 0.35, y: y + fishHeight * 0.58))
+                    tail.closeSubpath()
+
+                    context.fill(body, with: .color(.diveFish.opacity(0.68)))
+                    context.fill(tail, with: .color(.diveFish.opacity(0.62)))
+                    context.stroke(body, with: .color(.diveAqua.opacity(0.24 + breath * 0.1)), lineWidth: 0.8)
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: bodyRect.minX + fishWidth * 0.2, y: y - 1.2, width: 2.4, height: 2.4)),
+                        with: .color(.diveCyan.opacity(0.65))
                     )
                 }
 
@@ -189,6 +226,17 @@ struct OceanBackground: View {
             )
         }
         .ignoresSafeArea()
+        .onAppear {
+            motion.setActive(isActive, at: Date())
+        }
+        .onChange(of: isActive) { _, active in
+            motion.setActive(active, at: Date())
+        }
+    }
+
+    private func animationPhase(at date: Date) -> TimeInterval {
+        guard !reduceMotion else { return 0 }
+        return motion.phase(at: date)
     }
 
     private static let cavernImage: NSImage? = {
@@ -197,6 +245,27 @@ struct OceanBackground: View {
         }
         return NSImage(contentsOf: url)
     }()
+}
+
+final class AmbientMotionState: ObservableObject {
+    private var accumulatedPhase: TimeInterval = 0
+    private var activeSince: Date?
+
+    func setActive(_ isActive: Bool, at date: Date) {
+        if isActive {
+            if activeSince == nil {
+                activeSince = date
+            }
+        } else if let activeSince {
+            accumulatedPhase += max(0, date.timeIntervalSince(activeSince))
+            self.activeSince = nil
+        }
+    }
+
+    func phase(at date: Date) -> TimeInterval {
+        guard let activeSince else { return accumulatedPhase }
+        return accumulatedPhase + max(0, date.timeIntervalSince(activeSince))
+    }
 }
 
 struct BubbleField: View {

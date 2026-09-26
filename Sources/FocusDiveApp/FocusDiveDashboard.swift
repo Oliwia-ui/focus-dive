@@ -7,7 +7,7 @@ struct FocusDiveDashboard: View {
 
     var body: some View {
         ZStack {
-            OceanBackground(progress: model.progress, reduceMotion: reduceMotion)
+            OceanBackground(progress: model.progress, reduceMotion: reduceMotion, isActive: model.isRunning)
 
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.diveAbyss.opacity(0.08))
@@ -180,8 +180,11 @@ struct TimerConsole: View {
                     )
                     .padding(53)
 
-                BubbleField(reduceMotion: reduceMotion)
-                    .frame(width: side, height: side)
+                if model.isRunning {
+                    BubbleField(reduceMotion: reduceMotion)
+                        .frame(width: side, height: side)
+                        .transition(.opacity)
+                }
 
                 Circle()
                     .stroke(Color.diveCyan.opacity(0.08), lineWidth: 12)
