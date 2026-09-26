@@ -98,7 +98,7 @@ Copy supplied visual assets into the repository and package them inside the appl
 
 **Status:** Accepted
 
-Drive the surface-light breathing, drifting particles, and fish school from the existing background timeline while a session is running. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep fish sparse, dark, and slow so they add depth without competing with the countdown or controls.
+Drive the surface-light breathing and drifting particles from the dimmed procedural-water layer while rendering the fish school in its own ambient layer so silhouettes remain legible over the photograph. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep fish dark and slow, but give them enough scale and restrained cyan edge light to remain recognizable without competing with the countdown or controls.
 
 ## Open decisions
 

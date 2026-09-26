@@ -2,6 +2,18 @@
 
 All notable project changes are recorded here.
 
+## 2026-09-26 — Make the fish school clearly visible
+
+### Fixed
+
+- Moved the fish school out of the heavily dimmed procedural-water layer that reduced its final opacity to roughly one third.
+- Increased fish size and definition with restrained cyan edge light, dorsal fins, and visible eyes while keeping dark underwater silhouettes.
+- Kept fish visible while idle and animated them only during an active session, with pause and Reduce Motion freezing their current positions.
+
+### Verified
+
+- Rebuilt and launched the signed app bundle; the fish school is visibly present before the timer starts.
+
 ## 2026-09-26 — Living underwater ambience
 
 ### Added
