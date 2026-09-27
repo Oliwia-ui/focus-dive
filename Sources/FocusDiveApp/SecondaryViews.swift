@@ -30,6 +30,15 @@ struct SettingsView: View {
                     value: integerBinding(\.customMinutes, range: 1...180),
                     in: 1...180
                 )
+                Section("Obsidian vault") {
+                    LabeledContent("Location", value: model.vaultPath ?? "Not configured")
+                    Button("Choose Vault…") { model.chooseVault() }
+                    if let message = model.vaultMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section("Sound architecture") {
                     Toggle("Underwater ambience", isOn: .constant(false))
                         .disabled(true)
@@ -47,7 +56,7 @@ struct SettingsView: View {
             }
         }
         .padding(28)
-        .frame(width: 480, height: 470)
+        .frame(width: 520, height: 560)
     }
 
     private func integerBinding(_ keyPath: WritableKeyPath<DurationSettings, Int>, range: ClosedRange<Int>) -> Binding<Int> {

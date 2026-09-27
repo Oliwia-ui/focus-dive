@@ -32,21 +32,25 @@ public struct AppSnapshot: Codable, Equatable, Sendable {
     public var settings: DurationSettings
     public var history: [DiveLogEntry]
     public var tasks: [DiveTask]
+    public var vaultPath: String?
 
     public init(
         settings: DurationSettings,
         history: [DiveLogEntry],
-        tasks: [DiveTask] = []
+        tasks: [DiveTask] = [],
+        vaultPath: String? = nil
     ) {
         self.settings = settings
         self.history = history
         self.tasks = tasks
+        self.vaultPath = vaultPath
     }
 
     private enum CodingKeys: String, CodingKey {
         case settings
         case history
         case tasks
+        case vaultPath
     }
 
     public init(from decoder: Decoder) throws {
@@ -54,6 +58,7 @@ public struct AppSnapshot: Codable, Equatable, Sendable {
         settings = try container.decode(DurationSettings.self, forKey: .settings)
         history = try container.decode([DiveLogEntry].self, forKey: .history)
         tasks = try container.decodeIfPresent([DiveTask].self, forKey: .tasks) ?? []
+        vaultPath = try container.decodeIfPresent(String.self, forKey: .vaultPath)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -61,6 +66,7 @@ public struct AppSnapshot: Codable, Equatable, Sendable {
         try container.encode(settings, forKey: .settings)
         try container.encode(history, forKey: .history)
         try container.encode(tasks, forKey: .tasks)
+        try container.encodeIfPresent(vaultPath, forKey: .vaultPath)
     }
 }
 
