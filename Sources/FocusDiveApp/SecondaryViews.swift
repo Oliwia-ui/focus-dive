@@ -26,6 +26,17 @@ struct SettingsView: View {
                     in: 1...60
                 )
                 Toggle("Automatically begin surface breaks", isOn: booleanBinding(\.automaticallyStartBreaks))
+                Section("Obsidian vault") {
+                    LabeledContent("Location", value: model.vaultPath ?? "Not configured")
+                    Button("Choose Vault…") { model.chooseVault() }
+                    if let message = model.vaultMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Button("Retry pending records") { model.retryPendingLogEvents() }
+                        .disabled(model.vaultPath == nil)
+                }
                 Section("Sound architecture") {
                     Toggle("Underwater ambience", isOn: .constant(false))
                         .disabled(true)

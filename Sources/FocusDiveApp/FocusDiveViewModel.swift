@@ -15,8 +15,12 @@ final class FocusDiveViewModel: ObservableObject {
     @Published var discovery: Discovery?
     @Published var completionNotice: CompletionNotice?
     @Published var persistenceError: String?
+    @Published private(set) var vaultPath: String?
+    @Published private(set) var vaultMessage: String?
 
     private let store: JSONDiveStore
+    private var logger: (any FocusEventLogging)?
+    private var pendingLogEvents: [FocusLogEvent]
     private var ticker: Timer?
     private var persistenceWritable = true
 
@@ -49,6 +53,13 @@ final class FocusDiveViewModel: ObservableObject {
         mission = ""
         discovery = Self.discovery(for: snapshot.history.count)
         completionNotice = nil
+        vaultPath = snapshot.vaultPath
+        pendingLogEvents = snapshot.pendingLogEvents
+        logger = snapshot.vaultPath.map { ObsidianFocusLogger(vaultURL: URL(fileURLWithPath: $0)) }
+
+        if logger != nil {
+            retryPendingLogEvents()
+        }
     }
 
     var settings: DurationSettings { coordinator.settings }
@@ -71,15 +82,20 @@ final class FocusDiveViewModel: ObservableObject {
             coordinator.pause()
             ticker?.invalidate()
         } else {
+            let wasPaused = timer.state == .paused
             completionNotice = nil
             coordinator.mission = mission
             coordinator.start()
+            if currentKind == .focus, !wasPaused {
+                record(.started, actualDurationSeconds: 0)
+            }
             startTicker()
         }
         objectWillChange.send()
     }
 
     func reset() {
+        cancelCurrentFocusSessionIfNeeded()
         ticker?.invalidate()
         completionNotice = nil
         coordinator.reset()
@@ -87,6 +103,7 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func skip() {
+        cancelCurrentFocusSessionIfNeeded()
         ticker?.invalidate()
         completionNotice = nil
         coordinator.skip()
@@ -97,6 +114,7 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func stop() {
+        cancelCurrentFocusSessionIfNeeded()
         ticker?.invalidate()
         completionNotice = nil
         coordinator.stop()
@@ -122,6 +140,43 @@ final class FocusDiveViewModel: ObservableObject {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
     }
 
+    func chooseVault() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose your Obsidian vault"
+        panel.prompt = "Use This Vault"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        vaultPath = url.path
+        logger = ObsidianFocusLogger(vaultURL: url)
+        vaultMessage = "Logging to \(url.lastPathComponent)"
+        retryPendingLogEvents()
+        persist()
+    }
+
+    func retryPendingLogEvents() {
+        guard let logger else {
+            vaultMessage = "Choose an Obsidian vault to write activity records."
+            return
+        }
+
+        var remaining: [FocusLogEvent] = []
+        for event in pendingLogEvents {
+            do {
+                try logger.append(event)
+            } catch {
+                remaining.append(event)
+            }
+        }
+        pendingLogEvents = remaining
+        vaultMessage = remaining.isEmpty
+            ? "Obsidian logging is up to date."
+            : "\(remaining.count) event(s) still need to be written to Obsidian."
+        persist()
+    }
+
     private func startTicker() {
         ticker?.invalidate()
         ticker = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
@@ -136,6 +191,7 @@ final class FocusDiveViewModel: ObservableObject {
         if let entry = result.logEntry {
             history.insert(entry, at: 0)
             discovery = Self.discovery(for: history.count)
+            record(.completed, actualDurationSeconds: entry.durationSeconds)
         }
         if result.didComplete, let completedKind = result.completedKind {
             completionNotice = CompletionNotice(kind: completedKind)
@@ -151,12 +207,44 @@ final class FocusDiveViewModel: ObservableObject {
     private func persist() {
         guard persistenceWritable else { return }
         do {
-            try store.save(AppSnapshot(settings: coordinator.settings, history: history))
+            try store.save(AppSnapshot(
+                settings: coordinator.settings,
+                history: history,
+                vaultPath: vaultPath,
+                pendingLogEvents: pendingLogEvents
+            ))
             persistenceError = nil
         } catch {
             persistenceError = "Focus Dive could not save your latest changes."
             persistenceWritable = false
         }
+    }
+
+    private func cancelCurrentFocusSessionIfNeeded() {
+        guard currentKind == .focus,
+              timer.state == .running || timer.state == .paused else { return }
+        let activeDuration = max(0, timer.durationSeconds - timer.remainingSeconds(at: .now))
+        record(.cancelled, actualDurationSeconds: activeDuration)
+    }
+
+    private func record(_ type: FocusLogEventType, actualDurationSeconds: Int) {
+        let activity = coordinator.mission.trimmingCharacters(in: .whitespacesAndNewlines)
+        let event = FocusLogEvent(
+            timestamp: .now,
+            type: type,
+            activity: activity.isEmpty ? "Untitled focus dive" : activity,
+            actualDurationSeconds: actualDurationSeconds
+        )
+
+        do {
+            guard let logger else { throw VaultNotConfigured() }
+            try logger.append(event)
+            vaultMessage = "Activity recorded in Obsidian."
+        } catch {
+            pendingLogEvents.append(event)
+            vaultMessage = "Session saved locally. Obsidian logging needs attention."
+        }
+        persist()
     }
 
     private func notifyCompletion(for kind: SessionKind) {
@@ -177,6 +265,8 @@ final class FocusDiveViewModel: ObservableObject {
         let discoveries = Discovery.catalog
         return discoveries[(count / 3 - 1) % discoveries.count]
     }
+
+    private struct VaultNotConfigured: Error {}
 }
 
 struct CompletionNotice: Equatable {
