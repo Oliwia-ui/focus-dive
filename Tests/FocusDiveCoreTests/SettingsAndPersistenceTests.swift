@@ -51,6 +51,29 @@ import Testing
     #expect(restored.history == [entry])
 }
 
+@Test func snapshotsKeepVaultConfigurationAndQueuedFocusEvents() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = JSONDiveStore(directory: directory)
+    let event = FocusLogEvent(
+        timestamp: Date(timeIntervalSince1970: 1_727_123_456),
+        type: .cancelled,
+        activity: "Read assignment",
+        actualDurationSeconds: 312
+    )
+
+    try store.save(AppSnapshot(
+        settings: .standard,
+        history: [],
+        vaultPath: "/Users/example/Obsidian",
+        pendingLogEvents: [event]
+    ))
+
+    let restored = try store.load()
+    #expect(restored.vaultPath == "/Users/example/Obsidian")
+    #expect(restored.pendingLogEvents == [event])
+}
+
 @Test func sessionQueueAdvancesFocusShortFocusLong() throws {
     let coordinator = SessionCoordinator(settings: try .init(focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15))
 

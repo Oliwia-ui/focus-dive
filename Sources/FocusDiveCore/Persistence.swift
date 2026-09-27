@@ -28,10 +28,34 @@ public struct DiveLogEntry: Codable, Equatable, Identifiable, Sendable {
 public struct AppSnapshot: Codable, Equatable, Sendable {
     public var settings: DurationSettings
     public var history: [DiveLogEntry]
+    public var vaultPath: String?
+    public var pendingLogEvents: [FocusLogEvent]
 
-    public init(settings: DurationSettings, history: [DiveLogEntry]) {
+    public init(
+        settings: DurationSettings,
+        history: [DiveLogEntry],
+        vaultPath: String? = nil,
+        pendingLogEvents: [FocusLogEvent] = []
+    ) {
         self.settings = settings
         self.history = history
+        self.vaultPath = vaultPath
+        self.pendingLogEvents = pendingLogEvents
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case settings
+        case history
+        case vaultPath
+        case pendingLogEvents
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        settings = try container.decode(DurationSettings.self, forKey: .settings)
+        history = try container.decode([DiveLogEntry].self, forKey: .history)
+        vaultPath = try container.decodeIfPresent(String.self, forKey: .vaultPath)
+        pendingLogEvents = try container.decodeIfPresent([FocusLogEvent].self, forKey: .pendingLogEvents) ?? []
     }
 }
 
