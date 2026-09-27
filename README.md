@@ -94,7 +94,7 @@ xcodebuild test \
   CODE_SIGNING_ALLOWED=NO
 ```
 
-The generated `FocusDive.xcodeproj` is ignored by Git. Unit tests cover timer transitions, completion, depth, duration validation, session advancement, and JSON round trips. The UI smoke test covers start, pause, and reset.
+The generated `FocusDive.xcodeproj` is ignored by Git. Unit tests cover timer transitions, completion, depth, duration validation, session advancement, local persistence, and append-only Obsidian Markdown logging. The UI smoke test covers start, pause, and reset.
 
 ## Privacy
 
@@ -106,6 +106,38 @@ Focus Dive has no accounts, analytics, advertising, or network service. Settings
 
 The app requests notification permission only to show a local completion banner. Delete the JSON file to remove saved settings and dive history. Uninstalling the app does not automatically remove that Application Support file.
 
+## Obsidian vault activity log
+
+Focus Dive works offline and can write an append-only activity history to an Obsidian vault you select yourself.
+
+1. Open **Settings** from the dashboard.
+2. In **Obsidian vault**, choose **Choose Vault…**.
+3. Select the root folder of your existing Obsidian vault.
+4. Start, complete, stop, reset, or skip a focus dive.
+
+Focus Dive appends records to:
+
+```text
+Productivity Log/
+  Focus/
+    YYYY-MM-DD.md
+```
+
+It never replaces earlier records. Every focus start, completion, or cancellation includes the local date, time, timezone, event type, status, mission/activity, and actual active duration. If the vault is temporarily unavailable, the event stays safely in local app storage and can be retried from Settings.
+
+Example:
+
+```md
+## 2026-09-27
+
+- 14:32:18 Europe/Brussels | focus_session_started
+  - id: 00000000-0000-0000-0000-000000000000
+  - status: running
+  - activity: “Write assignment report”
+  - actual_duration_seconds: 0
+  - actual_duration: 0m 0s
+```
+
 ## Project notes
 
-Product, design, engineering, and release notes live in the Obsidian-compatible vault at [`Notes/Focus Dive`](Notes/Focus%20Dive/Index.md).
+Product, design, engineering, and release notes live in the Obsidian-compatible project vault at [`Notes/Focus Dive`](Notes/Focus%20Dive/Index.md). This is separate from the user-selected runtime activity vault described above.
