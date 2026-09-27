@@ -22,40 +22,112 @@ Keep timer, sequencing, settings, and persistence in `FocusDiveCore`. Keep Swift
 
 **Status:** Accepted
 
-Store settings and completed focus history in `~/Library/Application Support/FocusDive/focus-dive.json` using ISO 8601 dates and atomic writes.
+Store settings and completed focus history in `~/Library/Application Support/FocusDive/focus-dive.json` using ISO 8601 dates and atomic writes. This is sufficient for the MVP and keeps data inspectable and local.
+
+**Consequence:** Codable model changes need an explicit migration strategy before breaking schema compatibility.
 
 ## TD-005 — Swift Package Manager is the source of truth
 
 **Status:** Accepted
 
-Use `Package.swift` for the executable, core library, and unit tests. Use XcodeGen only when an Xcode project is required for app and UI testing.
+Use `Package.swift` for the executable, core library, and unit tests. Use XcodeGen only when an Xcode project is required for app and UI testing. Do not commit the generated project.
 
 ## TD-006 — Build a local app bundle with a script
 
 **Status:** Accepted
 
-`scripts/build-app.sh` builds the package, assembles `dist/Focus Dive.app`, copies app metadata and visual resources, and ad-hoc signs the bundle.
+`scripts/build-app.sh` builds the package, assembles `dist/Focus Dive.app`, copies app metadata, and ad-hoc signs the bundle.
+
+**Consequence:** External distribution still requires Developer ID signing, notarization, stapling, packaging, and release automation.
 
 ## TD-007 — Keep the MVP silent
 
 **Status:** Accepted
 
-Completion feedback uses visual state and a local notification without audio.
+Retain future sound flags in settings while presenting disabled sound controls. Completion feedback uses visual state and a local notification without audio.
 
 ## TD-008 — Derive lightweight rewards
 
 **Status:** Accepted
 
-Compute discoveries from completed history count and derive weekly profile, streak, and focus energy from history.
+Compute discoveries from completed history count and derive weekly profile, streak, and focus energy from history. Avoid additional persistence until reward state needs independent user control.
 
 ## TD-009 — Respect system motion preferences
 
 **Status:** Accepted
 
-With Reduce Motion enabled, decorative drift is effectively frozen and progress transitions are not animated.
+Pass Reduce Motion into continuous visual effects and progress animation. With reduced motion enabled, decorative drift is effectively frozen and progress transitions are not animated.
 
-## TD-010 — Bundle photographic backgrounds with a procedural fallback
+## TD-010 — Edit durations without interrupting active work
 
 **Status:** Accepted
 
-Bundle the cavern photograph with the app and render it below procedural ocean effects with aspect-fill cropping, restrained saturation, and navy edge gradients. If the resource cannot load, retain the procedural ocean rather than showing an empty background.
+Expose bounded duration editors directly from the visible session queue. Updating settings refreshes an idle session immediately, while a running or paused countdown keeps its original duration and elapsed-time anchor. New settings apply when the next session is created.
+
+## TD-011 — Use one deployment-compatible glass treatment
+
+**Status:** Accepted
+
+Use ultra-thin material, a restrained navy tint, soft cyan edge reflection, and the same panel shape across the supported macOS 14+ range. Avoid compile-time dependencies on newer SwiftUI-only glass APIs so SwiftPM and Xcode 16 CI remain valid while preserving the intended layered-glass direction.
+
+## TD-012 — Extend the existing snapshot for local tasks
+
+**Status:** Accepted
+
+Persist task records alongside settings and dive history in the existing local JSON snapshot. Decode a missing `tasks` key as an empty collection so snapshots created by earlier builds remain readable. Keep task lifecycle rules in `FocusDiveCore`; the SwiftUI view model exposes thin persistence-backed operations.
+
+## TD-013 — Link sessions to tasks without removing free-form missions
+
+**Status:** Accepted
+
+Keep the existing mission field as the human-readable activity description and add an optional task identifier to completed dive records. Selecting an open task fills the mission title, but users can still refine the activity description before starting. This satisfies task/session traceability without forcing every focus dive into a task.
+
+## TD-014 — Append events to date-based Obsidian Markdown logs
+
+**Status:** Accepted
+
+Use one Markdown file per date and event category inside the selected vault. Create the file once with a heading, then seek to the end and append immutable event blocks with unique event identifiers. This keeps logs readable in Obsidian, prevents silent replacement of older records, and avoids generating a large number of single-event files.
+
+## TD-015 — Bundle photographic backgrounds with a procedural fallback
+
+**Status:** Accepted for visual evaluation
+
+Copy supplied visual assets into the repository and package them inside the application bundle. Render the cavern photograph with aspect-fill cropping beneath the existing procedural water layer, then apply restrained saturation and navy edge gradients so controls remain legible. If the resource is absent or unreadable, retain the procedural ocean as a complete fallback instead of failing or showing an empty background.
+
+## TD-016 — Animate ambience only when it communicates active work
+
+**Status:** Accepted
+
+Drive the surface-light breathing and drifting particles from the dimmed procedural-water layer. Preserve accumulated animation phase across pause and resume so the scene freezes in place rather than jumping. Show bubbles only during active timing, lower the idle refresh cadence, and freeze decorative movement when macOS Reduce Motion is enabled. Keep ambience sparse and subordinate to the countdown.
+
+## TD-017 — Hold the completed timer at the surface
+
+**Status:** Accepted
+
+A completed session remains in the `.completed` state at `00:00` and zero metres until the user explicitly starts the next queued session. Completion logging happens immediately, but queue advancement is deferred. Automatic break settings from older snapshots remain decodable for compatibility but are ignored, and the UI no longer exposes automatic break startup.
+
+## TD-018 — Separate authoritative timer values from smooth presentation values
+
+**Status:** Accepted
+
+Keep integer remaining seconds as the timer’s authoritative state and derive fractional presentation progress from the existing date anchor. The UI refresh ticker uses the fractional value for smooth ring, depth, and environmental motion without changing completion boundaries, persistence, or countdown labels. Paused and completed timers return stable presentation values.
+
+## TD-019 — Keep session selection manual and the timer spatially stable
+
+**Status:** Accepted
+
+Treat the visible session list as a direct selector rather than a fixed-only queue: choosing Focus Dive, Short Break, Long Break, or Custom Session replaces the current countdown with that session in an idle state. Keep the countdown in a fixed-size central frame across session and status changes. Limit circular decoration to the timer track and progress ring; remove compass-like guide arcs, concentric rings, and cardinal ticks. Keep the underwater ambience free of fish so background motion remains quiet and non-distracting.
+
+## TD-020 — Use a nonactivating floating panel for active-session visibility
+
+**Status:** Accepted
+
+Present the compact timer in a separate AppKit `NSPanel` above normal application windows when a session is running and the main app is minimized or inactive. Make the panel nonactivating so browser work is not interrupted, allow it to join all Spaces and full-screen applications, and hide it immediately when the timer pauses, stops, or completes. Snap dragging to the nearest screen corner and store that corner locally. Keep an explicit pin option for users who want the panel visible while the main app is active, but never show it without a running session.
+
+## Open decisions
+
+- Persistence migration and recovery behavior
+- App Sandbox and hardened runtime configuration
+- Developer ID signing, notarization, and distribution channel
+- Sound implementation and user-facing audio policy
+- History editing, export, retention, and sync

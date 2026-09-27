@@ -15,6 +15,7 @@ public final class SessionCoordinator {
     public private(set) var completedFocusSessions = 0
     public private(set) var queuePosition = 0
     public var mission = ""
+    public var linkedTaskID: UUID?
 
     public init(settings: DurationSettings = .standard) {
         self.settings = settings
@@ -55,31 +56,62 @@ public final class SessionCoordinator {
                 completedAt: date,
                 durationSeconds: settings.duration(for: .focus),
                 taskName: mission.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled focus dive" : mission,
+                taskID: linkedTaskID,
                 depthReachedMeters: 60,
                 note: ""
             )
         } else {
             entry = nil
         }
-        advance(after: completedKind)
         return entry
+    }
+
+    public func prepareNextSession() {
+        guard timer.state == .completed else { return }
+        advance(after: currentKind)
+    }
+
+    public func startNextSession(at date: Date = .now) {
+        prepareNextSession()
+        timer.start(at: date)
     }
 
     public func skip() {
         advance(after: currentKind)
     }
 
+    public func selectSession(_ kind: SessionKind) {
+        currentKind = kind
+        switch kind {
+        case .focus:
+            queuePosition = 0
+        case .shortBreak:
+            queuePosition = 1
+        case .longBreak:
+            queuePosition = 3
+        case .custom:
+            queuePosition = 0
+        }
+        timer = DiveTimer(duration: settings.duration(for: kind))
+    }
+
     public func updateSettings(_ settings: DurationSettings) {
+        let shouldRefreshIdleTimer = timer.state == .idle
         self.settings = settings
-        timer = DiveTimer(duration: settings.duration(for: currentKind))
+        if shouldRefreshIdleTimer {
+            timer = DiveTimer(duration: settings.duration(for: currentKind))
+        }
     }
 
     private func advance(after kind: SessionKind) {
+        if kind == .custom {
+            queuePosition = 0
+            currentKind = .focus
+            timer = DiveTimer(duration: settings.duration(for: .focus))
+            return
+        }
         queuePosition = (queuePosition + 1) % 4
         currentKind = [.focus, .shortBreak, .focus, .longBreak][queuePosition]
         timer = DiveTimer(duration: settings.duration(for: currentKind))
-        if settings.automaticallyStartBreaks && currentKind != .focus {
-            timer.start()
-        }
     }
 }

@@ -1,3 +1,4 @@
+import FocusDiveCore
 import SwiftUI
 
 extension Color {
@@ -11,17 +12,36 @@ extension Color {
     static let diveAmber = Color(red: 0.96, green: 0.73, blue: 0.32)
 }
 
+extension SessionKind {
+    var accentColor: Color {
+        switch self {
+        case .focus: .diveCyan
+        case .shortBreak: .diveAqua
+        case .longBreak: .diveCobalt
+        case .custom: .diveAmber
+        }
+    }
+}
+
 struct DivePanelModifier: ViewModifier {
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
         content
-            .background(.black.opacity(0.22))
-            .background(.ultraThinMaterial.opacity(0.18))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(.ultraThinMaterial)
+            .background(Color.diveNavy.opacity(0.26))
+            .clipShape(shape)
             .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.diveAqua.opacity(0.28), lineWidth: 1)
+                shape.stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.18), Color.diveAqua.opacity(0.2), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.8
+                )
             }
-            .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
+            .shadow(color: Color.black.opacity(0.26), radius: 24, y: 12)
     }
 }
 
@@ -34,8 +54,8 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(title.uppercased())
-            .font(.system(size: 12, weight: .medium, design: .rounded))
-            .tracking(3.2)
+            .font(.system(size: 11, weight: .medium, design: .default))
+            .tracking(3.6)
             .foregroundStyle(Color.diveAqua.opacity(0.82))
     }
 }

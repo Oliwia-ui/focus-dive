@@ -8,10 +8,13 @@ import UserNotifications
 final class FocusDiveViewModel: ObservableObject {
     @Published private(set) var coordinator: SessionCoordinator
     @Published private(set) var history: [DiveLogEntry]
+    @Published private(set) var tasks: TaskCollection
     @Published var mission: String
     @Published var showSettings = false
     @Published var showLogbook = false
-    @Published var isCompact = false
+    @Published var showTasks = false
+    @Published var keepFloatingTimerVisible = false
+    @Published var selectedTaskID: UUID?
     @Published var discovery: Discovery?
     @Published var completionNotice: CompletionNotice?
     @Published var persistenceError: String?
@@ -19,8 +22,6 @@ final class FocusDiveViewModel: ObservableObject {
     @Published private(set) var vaultMessage: String?
 
     private let store: JSONDiveStore
-    private var logger: (any FocusEventLogging)?
-    private var pendingLogEvents: [FocusLogEvent]
     private var ticker: Timer?
     private var persistenceWritable = true
 
@@ -50,16 +51,13 @@ final class FocusDiveViewModel: ObservableObject {
 
         coordinator = SessionCoordinator(settings: snapshot.settings)
         history = snapshot.history
+        tasks = TaskCollection(items: snapshot.tasks)
         mission = ""
+        selectedTaskID = nil
         discovery = Self.discovery(for: snapshot.history.count)
         completionNotice = nil
         vaultPath = snapshot.vaultPath
-        pendingLogEvents = snapshot.pendingLogEvents
-        logger = snapshot.vaultPath.map { ObsidianFocusLogger(vaultURL: URL(fileURLWithPath: $0)) }
-
-        if logger != nil {
-            retryPendingLogEvents()
-        }
+        vaultMessage = snapshot.vaultPath == nil ? nil : "Logging to \(URL(fileURLWithPath: snapshot.vaultPath!).lastPathComponent)"
     }
 
     var settings: DurationSettings { coordinator.settings }
@@ -67,8 +65,11 @@ final class FocusDiveViewModel: ObservableObject {
     var currentKind: SessionKind { coordinator.currentKind }
     var remainingSeconds: Int { timer.remainingSeconds }
     var isRunning: Bool { timer.state == .running }
+    var timerState: TimerState { timer.state }
     var depth: Double { timer.depthMeters }
     var progress: Double { timer.progress }
+    var presentationDepth: Double { timer.continuousDepthMeters() }
+    var presentationProgress: Double { timer.continuousProgress() }
     var completedToday: Int {
         history.filter { Calendar.current.isDateInToday($0.completedAt) }.count
     }
@@ -78,6 +79,10 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func toggleTimer() {
+        if timer.state == .completed {
+            startNextSession()
+            return
+        }
         if isRunning {
             coordinator.pause()
             ticker?.invalidate()
@@ -85,17 +90,30 @@ final class FocusDiveViewModel: ObservableObject {
             let wasPaused = timer.state == .paused
             completionNotice = nil
             coordinator.mission = mission
+            coordinator.linkedTaskID = selectedTaskID
             coordinator.start()
             if currentKind == .focus, !wasPaused {
-                record(.started, actualDurationSeconds: 0)
+                logSession(eventType: "focus_session_started", status: "running", duration: 0)
             }
             startTicker()
         }
         objectWillChange.send()
     }
 
+    func startNextSession() {
+        completionNotice = nil
+        coordinator.startNextSession()
+        startTicker()
+        objectWillChange.send()
+    }
+
+    func staySurfaced() {
+        completionNotice = nil
+        objectWillChange.send()
+    }
+
     func reset() {
-        cancelCurrentFocusSessionIfNeeded()
+        logCancellationIfNeeded()
         ticker?.invalidate()
         completionNotice = nil
         coordinator.reset()
@@ -103,7 +121,7 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func skip() {
-        cancelCurrentFocusSessionIfNeeded()
+        logCancellationIfNeeded()
         ticker?.invalidate()
         completionNotice = nil
         coordinator.skip()
@@ -114,7 +132,7 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     func stop() {
-        cancelCurrentFocusSessionIfNeeded()
+        logCancellationIfNeeded()
         ticker?.invalidate()
         completionNotice = nil
         coordinator.stop()
@@ -124,14 +142,83 @@ final class FocusDiveViewModel: ObservableObject {
     func updateSettings(_ settings: DurationSettings) {
         ticker?.invalidate()
         coordinator.updateSettings(settings)
+        if coordinator.timer.state == .running {
+            startTicker()
+        }
         persist()
         objectWillChange.send()
+    }
+
+    func minutes(for kind: SessionKind) -> Int {
+        switch kind {
+        case .focus: settings.focusMinutes
+        case .shortBreak: settings.shortBreakMinutes
+        case .longBreak: settings.longBreakMinutes
+        case .custom: settings.customMinutes
+        }
+    }
+
+    func selectSession(_ kind: SessionKind) {
+        ticker?.invalidate()
+        completionNotice = nil
+        coordinator.selectSession(kind)
+        objectWillChange.send()
+    }
+
+    func updateDuration(for kind: SessionKind, minutes: Int) {
+        var updated = settings
+        switch kind {
+        case .focus:
+            updated.focusMinutes = min(max(minutes, 1), 120)
+        case .shortBreak:
+            updated.shortBreakMinutes = min(max(minutes, 1), 30)
+        case .longBreak:
+            updated.longBreakMinutes = min(max(minutes, 1), 60)
+        case .custom:
+            updated.customMinutes = min(max(minutes, 1), 180)
+        }
+        updateSettings(updated)
     }
 
     func updateNote(for entryID: UUID, note: String) {
         guard let index = history.firstIndex(where: { $0.id == entryID }) else { return }
         history[index].note = note
         persist()
+    }
+
+    @discardableResult
+    func createTask(title: String, details: String = "") throws -> DiveTask {
+        let task = try tasks.create(title: title, details: details)
+        persist()
+        return task
+    }
+
+    func updateTask(id: UUID, title: String, details: String) throws {
+        try tasks.update(id: id, title: title, details: details)
+        persist()
+    }
+
+    func setTaskCompleted(_ isCompleted: Bool, id: UUID) throws {
+        if isCompleted {
+            try tasks.complete(id: id)
+        } else {
+            try tasks.reopen(id: id)
+        }
+        persist()
+    }
+
+    func deleteTask(id: UUID) throws {
+        try tasks.delete(id: id)
+        if selectedTaskID == id {
+            selectedTaskID = nil
+        }
+        persist()
+    }
+
+    func linkTask(_ id: UUID?) {
+        selectedTaskID = id
+        guard let id, let task = tasks.items.first(where: { $0.id == id }) else { return }
+        mission = task.title
     }
 
     func requestNotificationPermission() {
@@ -148,32 +235,8 @@ final class FocusDiveViewModel: ObservableObject {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
-
         vaultPath = url.path
-        logger = ObsidianFocusLogger(vaultURL: url)
         vaultMessage = "Logging to \(url.lastPathComponent)"
-        retryPendingLogEvents()
-        persist()
-    }
-
-    func retryPendingLogEvents() {
-        guard let logger else {
-            vaultMessage = "Choose an Obsidian vault to write activity records."
-            return
-        }
-
-        var remaining: [FocusLogEvent] = []
-        for event in pendingLogEvents {
-            do {
-                try logger.append(event)
-            } catch {
-                remaining.append(event)
-            }
-        }
-        pendingLogEvents = remaining
-        vaultMessage = remaining.isEmpty
-            ? "Obsidian logging is up to date."
-            : "\(remaining.count) event(s) still need to be written to Obsidian."
         persist()
     }
 
@@ -191,7 +254,13 @@ final class FocusDiveViewModel: ObservableObject {
         if let entry = result.logEntry {
             history.insert(entry, at: 0)
             discovery = Self.discovery(for: history.count)
-            record(.completed, actualDurationSeconds: entry.durationSeconds)
+            logSession(
+                eventType: "focus_session_completed",
+                status: "completed",
+                duration: entry.durationSeconds,
+                activity: entry.taskName,
+                taskID: entry.taskID
+            )
         }
         if result.didComplete, let completedKind = result.completedKind {
             completionNotice = CompletionNotice(kind: completedKind)
@@ -207,12 +276,14 @@ final class FocusDiveViewModel: ObservableObject {
     private func persist() {
         guard persistenceWritable else { return }
         do {
-            try store.save(AppSnapshot(
-                settings: coordinator.settings,
-                history: history,
-                vaultPath: vaultPath,
-                pendingLogEvents: pendingLogEvents
-            ))
+            try store.save(
+                AppSnapshot(
+                    settings: coordinator.settings,
+                    history: history,
+                    tasks: tasks.items,
+                    vaultPath: vaultPath
+                )
+            )
             persistenceError = nil
         } catch {
             persistenceError = "Focus Dive could not save your latest changes."
@@ -220,31 +291,41 @@ final class FocusDiveViewModel: ObservableObject {
         }
     }
 
-    private func cancelCurrentFocusSessionIfNeeded() {
+    private func logCancellationIfNeeded() {
         guard currentKind == .focus,
               timer.state == .running || timer.state == .paused else { return }
-        let activeDuration = max(0, timer.durationSeconds - timer.remainingSeconds(at: .now))
-        record(.cancelled, actualDurationSeconds: activeDuration)
+        logSession(
+            eventType: "focus_session_cancelled",
+            status: "cancelled",
+            duration: max(0, timer.durationSeconds - timer.remainingSeconds(at: .now))
+        )
     }
 
-    private func record(_ type: FocusLogEventType, actualDurationSeconds: Int) {
-        let activity = coordinator.mission.trimmingCharacters(in: .whitespacesAndNewlines)
-        let event = FocusLogEvent(
-            timestamp: .now,
-            type: type,
-            activity: activity.isEmpty ? "Untitled focus dive" : activity,
-            actualDurationSeconds: actualDurationSeconds
+    private func logSession(
+        eventType: String,
+        status: String,
+        duration: Int,
+        activity: String? = nil,
+        taskID: UUID? = nil
+    ) {
+        guard let vaultPath else {
+            vaultMessage = "Choose an Obsidian vault to record focus activity."
+            return
+        }
+        let name = (activity ?? coordinator.mission).trimmingCharacters(in: .whitespacesAndNewlines)
+        let event = ObsidianEventRecord(
+            eventType: eventType,
+            status: status,
+            taskOrActivity: name.isEmpty ? "Untitled focus dive" : name,
+            taskID: taskID ?? coordinator.linkedTaskID,
+            actualDurationSeconds: duration
         )
-
         do {
-            guard let logger else { throw VaultNotConfigured() }
-            try logger.append(event)
+            try ObsidianMarkdownLogger(vaultURL: URL(fileURLWithPath: vaultPath)).append(event, category: .sessions)
             vaultMessage = "Activity recorded in Obsidian."
         } catch {
-            pendingLogEvents.append(event)
-            vaultMessage = "Session saved locally. Obsidian logging needs attention."
+            vaultMessage = "Session saved locally, but Obsidian needs attention."
         }
-        persist()
     }
 
     private func notifyCompletion(for kind: SessionKind) {
@@ -265,19 +346,18 @@ final class FocusDiveViewModel: ObservableObject {
         let discoveries = Discovery.catalog
         return discoveries[(count / 3 - 1) % discoveries.count]
     }
-
-    private struct VaultNotConfigured: Error {}
 }
 
 struct CompletionNotice: Equatable {
     let kind: SessionKind
 
-    var title: String { kind == .focus ? "Surface reached" : "Break complete" }
+    var title: String { kind == .focus ? "Dive Complete" : "Break Complete" }
     var detail: String {
         kind == .focus
-            ? "A quiet focus dive is now in your logbook."
+            ? "You reached the surface. Start a break when you are ready."
             : "Your next focus dive is ready when you are."
     }
+    var actionTitle: String { kind == .focus ? "Start Break" : "Start Focus Dive" }
 }
 
 struct Discovery: Identifiable, Equatable {

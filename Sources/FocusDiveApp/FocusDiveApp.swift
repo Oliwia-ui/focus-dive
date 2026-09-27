@@ -7,19 +7,17 @@ struct FocusDiveApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if model.isCompact {
-                    CompactTimerView(model: model)
-                } else {
-                    FocusDiveDashboard(model: model)
-                }
-            }
-            .preferredColorScheme(.dark)
+            FocusDiveDashboard(model: model)
+                .background(FloatingTimerWindowObserver(model: model))
+                .preferredColorScheme(.dark)
             .sheet(isPresented: $model.showSettings) {
                 SettingsView(model: model)
             }
             .sheet(isPresented: $model.showLogbook) {
                 LogbookView(model: model)
+            }
+            .sheet(isPresented: $model.showTasks) {
+                TaskListView(model: model)
             }
         }
         .windowStyle(.hiddenTitleBar)
@@ -43,7 +41,11 @@ struct FocusDiveApp: App {
                     .keyboardShortcut(",", modifiers: [.command])
                 Button("Open Dive Log") { model.showLogbook = true }
                     .keyboardShortcut("l", modifiers: [.command])
-                Button("Toggle Mini Timer") { model.isCompact.toggle() }
+                Button("Open Tasks") { model.showTasks = true }
+                    .keyboardShortcut("t", modifiers: [.command])
+                Button("Keep Floating Timer Visible") {
+                    model.keepFloatingTimerVisible.toggle()
+                }
                     .keyboardShortcut("m", modifiers: [.command, .shift])
             }
         }
@@ -60,6 +62,7 @@ struct FocusDiveApp: App {
                 Button("Skip") { model.skip() }
                 Divider()
                 Button("Settings…") { model.showSettings = true }
+                Button("Tasks…") { model.showTasks = true }
                 Button("Quit Focus Dive") { NSApplication.shared.terminate(nil) }
             }
             .padding(8)

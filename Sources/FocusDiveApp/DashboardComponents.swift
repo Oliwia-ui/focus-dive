@@ -5,7 +5,7 @@ struct RightRail: View {
     @ObservedObject var model: FocusDiveViewModel
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             SessionQueueCard(model: model)
             WeeklyDepthProfile(history: model.history)
             controlRow
@@ -20,6 +20,7 @@ struct RightRail: View {
             control("stop.fill", label: "Stop", action: model.stop)
         }
         .frame(maxWidth: .infinity)
+        .opacity(0.78)
     }
 
     private func control(_ icon: String, label: String, action: @escaping () -> Void) -> some View {
@@ -39,13 +40,14 @@ struct RightRail: View {
 
 struct SessionQueueCard: View {
     @ObservedObject var model: FocusDiveViewModel
+    @StateObject private var editing = SessionQueueEditingState()
 
     private var queue: [(SessionKind, Int)] {
         [
             (.focus, model.settings.focusMinutes),
             (.shortBreak, model.settings.shortBreakMinutes),
-            (.focus, model.settings.focusMinutes),
-            (.longBreak, model.settings.longBreakMinutes)
+            (.longBreak, model.settings.longBreakMinutes),
+            (.custom, model.settings.customMinutes)
         ]
     }
 
@@ -59,27 +61,52 @@ struct SessionQueueCard: View {
             }
 
             ForEach(Array(queue.enumerated()), id: \.offset) { index, item in
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle().stroke(Color.diveAqua.opacity(0.75), lineWidth: 1.5)
-                        if index == activeIndex {
-                            Circle().fill(Color.diveCyan.opacity(0.28)).padding(5)
-                            Circle().stroke(Color.diveCyan, lineWidth: 2).padding(5)
-                        }
-                    }
-                    .frame(width: 29, height: 29)
-                    .shadow(color: index == activeIndex ? .diveCyan : .clear, radius: 9)
+                HStack(spacing: 8) {
+                    Button {
+                        model.selectSession(item.0)
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle().stroke(Color.diveAqua.opacity(0.75), lineWidth: 1.5)
+                                if index == activeIndex {
+                                    Circle().fill(item.0.accentColor.opacity(0.28)).padding(5)
+                                    Circle().stroke(item.0.accentColor, lineWidth: 2).padding(5)
+                                }
+                            }
+                            .frame(width: 29, height: 29)
+                            .shadow(color: index == activeIndex ? item.0.accentColor : .clear, radius: 9)
 
-                    Text(item.0.title.replacingOccurrences(of: " Surface", with: ""))
-                        .font(.system(size: 14, weight: index == activeIndex ? .medium : .regular, design: .rounded))
-                    Spacer()
-                    Text("\(item.1) min")
-                        .font(.system(size: 13, weight: .regular, design: .rounded))
-                        .foregroundStyle(Color.diveAqua)
+                            Text(item.0.title.replacingOccurrences(of: " Surface", with: ""))
+                                .font(.system(size: 14, weight: index == activeIndex ? .medium : .regular, design: .rounded))
+                            Spacer()
+                            Text("\(item.1) min")
+                                .font(.system(size: 13, weight: .regular, design: .rounded))
+                                .foregroundStyle(Color.diveAqua)
+                        }
+                        .contentShape(Rectangle())
+                        .padding(.vertical, 5)
+                        .padding(.leading, 8)
+                        .background(index == activeIndex ? item.0.accentColor.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("session-row-\(index)")
+                    .accessibilityLabel("Select \(item.0.title), \(item.1) minutes")
+
+                    Button {
+                        editing.index = index
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 11, weight: .medium))
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.diveAqua.opacity(0.68))
+                    .accessibilityLabel("Edit \(item.0.title) duration")
+                    .popover(isPresented: editorBinding(for: index), arrowEdge: .trailing) {
+                        SessionDurationEditor(model: model, kind: item.0)
+                    }
                 }
-                .padding(.vertical, 5)
-                .padding(.horizontal, 8)
-                .background(index == activeIndex ? Color.diveCyan.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 10))
+                .animation(.easeInOut(duration: 0.35), value: activeIndex)
             }
         }
         .padding(22)
@@ -87,7 +114,103 @@ struct SessionQueueCard: View {
     }
 
     private var activeIndex: Int {
-        model.coordinator.queuePosition
+        queue.firstIndex(where: { $0.0 == model.currentKind }) ?? 0
+    }
+
+    private func editorBinding(for index: Int) -> Binding<Bool> {
+        Binding(
+            get: { editing.index == index },
+            set: { isPresented in
+                if !isPresented, editing.index == index {
+                    editing.index = nil
+                }
+            }
+        )
+    }
+}
+
+private final class SessionQueueEditingState: ObservableObject {
+    @Published var index: Int?
+}
+
+private struct SessionDurationEditor: View {
+    @ObservedObject var model: FocusDiveViewModel
+    let kind: SessionKind
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var editing: SessionDurationEditingState
+
+    init(model: FocusDiveViewModel, kind: SessionKind) {
+        self.model = model
+        self.kind = kind
+        _editing = StateObject(wrappedValue: SessionDurationEditingState(minutes: model.minutes(for: kind)))
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            VStack(spacing: 5) {
+                SectionLabel(title: kind.title.replacingOccurrences(of: " Surface", with: ""))
+                Text("\(editing.minutes) min")
+                    .font(.system(size: 34, weight: .light, design: .rounded))
+                    .monospacedDigit()
+            }
+
+            Stepper(value: $editing.minutes, in: allowedRange, step: 1) {
+                Text("Duration")
+                    .foregroundStyle(Color.diveText)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(presets, id: \.self) { preset in
+                    Button("\(preset)") { editing.minutes = preset }
+                        .buttonStyle(.bordered)
+                        .tint(editing.minutes == preset ? Color.diveCyan : Color.diveAqua.opacity(0.45))
+                        .accessibilityIdentifier("duration-preset-\(preset)")
+                }
+            }
+
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Button("Apply") {
+                    model.updateDuration(for: kind, minutes: editing.minutes)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.diveCobalt)
+                .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("apply-session-duration")
+            }
+        }
+        .padding(22)
+        .frame(width: 270)
+        .foregroundStyle(Color.diveText)
+        .divePanel()
+    }
+
+    private var allowedRange: ClosedRange<Int> {
+        switch kind {
+        case .focus: 1...120
+        case .shortBreak: 1...30
+        case .longBreak: 1...60
+        case .custom: 1...180
+        }
+    }
+
+    private var presets: [Int] {
+        switch kind {
+        case .focus: [15, 25, 45, 60]
+        case .shortBreak: [3, 5, 10, 15]
+        case .longBreak: [10, 15, 20, 30]
+        case .custom: [20, 30, 45, 90]
+        }
+    }
+}
+
+private final class SessionDurationEditingState: ObservableObject {
+    @Published var minutes: Int
+
+    init(minutes: Int) {
+        self.minutes = minutes
     }
 }
 
@@ -105,26 +228,50 @@ struct WeeklyDepthProfile: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionLabel(title: "Weekly depth profile")
-            HStack(alignment: .bottom, spacing: 16) {
-                ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                    VStack(spacing: 8) {
-                        ZStack(alignment: .bottom) {
-                            Capsule().fill(Color.diveAqua.opacity(0.07))
-                            Capsule()
-                                .fill(LinearGradient(colors: [.diveCyan, .diveCobalt.opacity(0.25)], startPoint: .top, endPoint: .bottom))
-                                .frame(height: max(12, 82 * value))
-                                .shadow(color: .diveCyan.opacity(value > 0 ? 0.45 : 0), radius: 7)
+            HStack(alignment: .top, spacing: 10) {
+                ZStack(alignment: .bottom) {
+                    VStack {
+                        Rectangle().fill(Color.diveAqua.opacity(0.2)).frame(height: 0.7)
+                        Spacer()
+                        Rectangle().fill(Color.diveAqua.opacity(0.14)).frame(height: 0.7)
+                        Spacer()
+                        Rectangle().fill(Color.diveAqua.opacity(0.12)).frame(height: 0.7)
+                    }
+                    .frame(height: 92)
+
+                    HStack(alignment: .bottom, spacing: 15) {
+                        ForEach(Array(values.enumerated()), id: \.offset) { index, value in
+                            VStack(spacing: 8) {
+                                ZStack(alignment: .bottom) {
+                                    Capsule().fill(Color.diveAqua.opacity(0.035))
+                                    Capsule()
+                                        .fill(LinearGradient(colors: [.diveCyan, .diveCobalt.opacity(0.22)], startPoint: .top, endPoint: .bottom))
+                                        .frame(height: max(12, 78 * value))
+                                        .shadow(color: .diveCyan.opacity(value > 0 ? 0.45 : 0), radius: 7)
+                                }
+                                .frame(width: 16, height: 82)
+                                Text(dayLetter(index))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(Color.diveAqua)
+                            }
                         }
-                        .frame(width: 16, height: 86)
-                        Text(dayLetter(index))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(Color.diveAqua)
                     }
                 }
+                .frame(maxWidth: .infinity)
+
+                VStack(alignment: .trailing) {
+                    Text("40 m")
+                    Spacer()
+                    Text("20 m")
+                    Spacer()
+                    Text("0 m")
+                }
+                .font(.system(size: 9, weight: .regular, design: .default))
+                .foregroundStyle(Color.diveAqua)
+                .frame(height: 92)
             }
-            .frame(maxWidth: .infinity)
         }
         .padding(22)
         .divePanel()
