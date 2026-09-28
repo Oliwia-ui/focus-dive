@@ -19,6 +19,12 @@ jobs:
         run: swift test
       - name: Build app bundle
         run: ./scripts/build-app.sh release
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Focus-Dive-macOS-app
+          path: dist/Focus Dive.app
+          if-no-files-found: error
 
   xcode-project:
     runs-on: macos-15
