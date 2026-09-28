@@ -2,7 +2,6 @@ import AppKit
 import Combine
 import FocusDiveCore
 import Foundation
-import UserNotifications
 
 @MainActor
 final class FocusDiveViewModel: ObservableObject {
@@ -221,12 +220,6 @@ final class FocusDiveViewModel: ObservableObject {
         mission = task.title
     }
 
-    func requestNotificationPermission() {
-        guard ProcessInfo.processInfo.environment["FOCUS_DIVE_UI_TESTING"] != "1",
-              Bundle.main.bundleIdentifier != nil else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
-    }
-
     func chooseVault() {
         let panel = NSOpenPanel()
         panel.title = "Choose your Obsidian vault"
@@ -265,7 +258,6 @@ final class FocusDiveViewModel: ObservableObject {
         if result.didComplete, let completedKind = result.completedKind {
             completionNotice = CompletionNotice(kind: completedKind)
             persist()
-            notifyCompletion(for: completedKind)
         }
         if coordinator.timer.state != .running {
             ticker?.invalidate()
@@ -330,20 +322,6 @@ final class FocusDiveViewModel: ObservableObject {
 
     private var isProductiveSession: Bool {
         currentKind == .focus || currentKind == .custom
-    }
-
-    private func notifyCompletion(for kind: SessionKind) {
-        guard Bundle.main.bundleIdentifier != nil else { return }
-        let content = UNMutableNotificationContent()
-        let isProductive = kind == .focus || kind == .custom
-        content.title = isProductive ? "Surface reached" : "Break complete"
-        content.body = isProductive
-            ? "Your focus dive is complete. Take a quiet breath."
-            : "Your surface break is complete. Ready for the next dive?"
-        content.sound = nil
-        UNUserNotificationCenter.current().add(
-            UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        )
     }
 
     private static func discovery(for count: Int) -> Discovery? {

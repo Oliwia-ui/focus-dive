@@ -81,7 +81,6 @@ struct FocusDiveDashboard: View {
         .frame(minWidth: 1_180, minHeight: 760)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.7), value: model.completionNotice != nil)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: model.currentKind)
-        .onAppear { model.requestNotificationPermission() }
     }
 
     private func completionOverlay(_ notice: CompletionNotice) -> some View {
