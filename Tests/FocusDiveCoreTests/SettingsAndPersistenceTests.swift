@@ -65,7 +65,10 @@ import Testing
     #expect(coordinator.timer.state == .idle)
 
     coordinator.start(at: Date(timeIntervalSince1970: 0))
-    _ = coordinator.tick(at: Date(timeIntervalSince1970: 2_520))
+    let result = coordinator.tick(at: Date(timeIntervalSince1970: 2_520))
+
+    #expect(result.logEntry?.durationSeconds == 2_520)
+    #expect(result.logEntry?.taskName == "Untitled focus dive")
     coordinator.prepareNextSession()
 
     #expect(coordinator.currentKind == .focus)

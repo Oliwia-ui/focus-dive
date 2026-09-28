@@ -50,11 +50,11 @@ public final class SessionCoordinator {
     public func completeCurrentSession(at date: Date = .now) -> DiveLogEntry? {
         let completedKind = currentKind
         let entry: DiveLogEntry?
-        if completedKind == .focus {
+        if completedKind == .focus || completedKind == .custom {
             completedFocusSessions += 1
             entry = DiveLogEntry(
                 completedAt: date,
-                durationSeconds: settings.duration(for: .focus),
+                durationSeconds: settings.duration(for: completedKind),
                 taskName: mission.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled focus dive" : mission,
                 taskID: linkedTaskID,
                 depthReachedMeters: 60,

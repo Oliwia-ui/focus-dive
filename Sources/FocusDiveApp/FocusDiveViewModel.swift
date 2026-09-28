@@ -92,7 +92,7 @@ final class FocusDiveViewModel: ObservableObject {
             coordinator.mission = mission
             coordinator.linkedTaskID = selectedTaskID
             coordinator.start()
-            if currentKind == .focus, !wasPaused {
+            if isProductiveSession, !wasPaused {
                 logSession(eventType: "focus_session_started", status: "running", duration: 0)
             }
             startTicker()
@@ -292,7 +292,7 @@ final class FocusDiveViewModel: ObservableObject {
     }
 
     private func logCancellationIfNeeded() {
-        guard currentKind == .focus,
+        guard isProductiveSession,
               timer.state == .running || timer.state == .paused else { return }
         logSession(
             eventType: "focus_session_cancelled",
@@ -328,11 +328,16 @@ final class FocusDiveViewModel: ObservableObject {
         }
     }
 
+    private var isProductiveSession: Bool {
+        currentKind == .focus || currentKind == .custom
+    }
+
     private func notifyCompletion(for kind: SessionKind) {
         guard Bundle.main.bundleIdentifier != nil else { return }
         let content = UNMutableNotificationContent()
-        content.title = kind == .focus ? "Surface reached" : "Break complete"
-        content.body = kind == .focus
+        let isProductive = kind == .focus || kind == .custom
+        content.title = isProductive ? "Surface reached" : "Break complete"
+        content.body = isProductive
             ? "Your focus dive is complete. Take a quiet breath."
             : "Your surface break is complete. Ready for the next dive?"
         content.sound = nil
