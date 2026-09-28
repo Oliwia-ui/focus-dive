@@ -58,7 +58,7 @@ FocusDive
 └── scripts                     App-bundle build tooling
 ```
 
-`FocusDiveCore` is UI-independent. `DiveTimer` owns deterministic timer state, `SessionCoordinator` advances focus and break sessions, and `JSONDiveStore` persists settings and completed dives. `FocusDiveViewModel` adapts the core for SwiftUI, drives the quarter-second UI ticker, sends notifications, and exposes dashboard state.
+`FocusDiveCore` is UI-independent. `DiveTimer` owns deterministic timer state, `SessionCoordinator` advances focus and break sessions, and `JSONDiveStore` persists settings and completed dives. `FocusDiveViewModel` adapts the core for SwiftUI, drives the quarter-second UI ticker, and exposes dashboard state.
 
 ## Keyboard shortcuts
 
@@ -104,7 +104,7 @@ Focus Dive has no accounts, analytics, advertising, or network service. Settings
 ~/Library/Application Support/FocusDive/focus-dive.json
 ```
 
-The app requests notification permission only to show a local completion banner. Delete the JSON file to remove saved settings and dive history. Uninstalling the app does not automatically remove that Application Support file.
+Delete the JSON file to remove saved settings and dive history. Uninstalling the app does not automatically remove that Application Support file.
 
 ## Obsidian vault activity log
 
