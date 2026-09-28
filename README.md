@@ -113,29 +113,32 @@ Focus Dive works offline and can write an append-only activity history to an Obs
 1. Open **Settings** from the dashboard.
 2. In **Obsidian vault**, choose **Choose Vault…**.
 3. Select the root folder of your existing Obsidian vault.
-4. Start, complete, stop, reset, or skip a focus dive.
+4. Start a focus dive, let it complete, or cancel it.
 
 Focus Dive appends records to:
 
 ```text
-Productivity Log/
-  Focus/
+Focus Dive/
+  Sessions/
     YYYY-MM-DD.md
 ```
 
-It never replaces earlier records. Every focus start, completion, or cancellation includes the local date, time, timezone, event type, status, mission/activity, and actual active duration. If the vault is temporarily unavailable, the event stays safely in local app storage and can be retried from Settings.
+It never replaces earlier records. Every focus start, completion, or cancellation includes the local date, time, timezone, event type, status, mission/activity, linked task ID when present, and actual active duration. If the vault is unavailable, the completed session remains safely in the app's local history and the app shows that Obsidian needs attention.
 
 Example:
 
 ```md
-## 2026-09-27
+## 14:32:18 · focus_session_started
 
-- 14:32:18 Europe/Brussels | focus_session_started
-  - id: 00000000-0000-0000-0000-000000000000
-  - status: running
-  - activity: “Write assignment report”
-  - actual_duration_seconds: 0
-  - actual_duration: 0m 0s
+- Date: 2026-09-27
+- Time: 14:32:18
+- Timezone: Europe/Brussels
+- Event type: focus_session_started
+- Status: running
+- Task/activity: Write assignment report
+- Task ID: n/a
+- Actual session duration: 0 seconds
+- Event ID: 00000000-0000-0000-0000-000000000000
 ```
 
 ## Project notes
